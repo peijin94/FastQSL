@@ -4,39 +4,39 @@
 #define M_PI 3.14159265
 #endif
 
+__device__ float lenVec3(float xx,float yy,float zz){return sqrt(xx*xx+yy*yy+zz*zz);}
+
 __device__ float get_Idx3d(float *Arr,long *AShapeN,long xIdx,long yIdx,long zIdx){
-    return Arr[xIdx* AShapeN[1]*AShapeN[2]  +  yIdx* AShapeN[2]  +  zIdx];
-}
+    return Arr[xIdx* AShapeN[1]*AShapeN[2]  +  yIdx* AShapeN[2]  +  zIdx];}
 
-__global__ void test_Idx2(float *Arr,long *AShapeN,long *getIdx,float *res){
-    res[0] = get_Idx3d(Arr,AShapeN,getIdx[0],getIdx[1],getIdx[2]);
-}
-
-
-
-__global__ void Interp3d(float *Arr,long *AShapeN, float *inPoint,float *aget){
+__device__ float Interp3d(float *Arr,long *AShapeN, \
+    float inPoint_x, float inPoint_y, float inPoint_z){
 
     //algorithm [https://core.ac.uk/download/pdf/44386053.pdf]
-
     float rx,ry,rz; // ratio of the point
     float Arr000,Arr001,Arr010,Arr011,Arr100,Arr101,Arr110,Arr111;
     float Aget;
     int x_Idx,y_Idx,z_Idx;
+    
+    // handle out of boundary problem by extending
+    inPoint_x = (inPoint_x>0) ? inPoint_x : 0;
+    inPoint_y = (inPoint_y>0) ? inPoint_y : 0;
+    inPoint_z = (inPoint_z>0) ? inPoint_z : 0;
+    inPoint_x = (inPoint_x<AShapeN[0]) ? inPoint_x : AShapeN[0];
+    inPoint_y = (inPoint_y<AShapeN[1]) ? inPoint_y : AShapeN[1];
+    inPoint_z = (inPoint_z<AShapeN[2]) ? inPoint_z : AShapeN[2];
 
-    rx = inPoint[0]-floorf(inPoint[0]);
-    ry = inPoint[1]-floorf(inPoint[1]);
-    rz = inPoint[2]-floorf(inPoint[2]);
+    // ratio of the points to adjacent grid
+    rx = inPoint_x-floorf(inPoint_x);
+    ry = inPoint_y-floorf(inPoint_y);
+    rz = inPoint_z-floorf(inPoint_z);
 
-    x_Idx = __float2int_rd(inPoint[0]);
-    y_Idx = __float2int_rd(inPoint[1]);
-    z_Idx = __float2int_rd(inPoint[2]);
+    // index of point in the down-side
+    x_Idx = __float2int_rd(inPoint_x);
+    y_Idx = __float2int_rd(inPoint_y);
+    z_Idx = __float2int_rd(inPoint_z);
 
-
-    printf("%f %f %f\n", rx, ry,rz);
-    printf("%f %f %f\n", inPoint[0], inPoint[1],inPoint[2]);
-    printf("%d %d %d\n", x_Idx, y_Idx, z_Idx);
-
-
+    // grid boundary
     Arr000 = get_Idx3d(Arr,AShapeN, x_Idx  ,y_Idx  ,z_Idx  );
     Arr001 = get_Idx3d(Arr,AShapeN, x_Idx  ,y_Idx  ,z_Idx+1);
     Arr010 = get_Idx3d(Arr,AShapeN, x_Idx  ,y_Idx+1,z_Idx  );
@@ -45,7 +45,6 @@ __global__ void Interp3d(float *Arr,long *AShapeN, float *inPoint,float *aget){
     Arr101 = get_Idx3d(Arr,AShapeN, x_Idx+1,y_Idx  ,z_Idx+1);
     Arr110 = get_Idx3d(Arr,AShapeN, x_Idx+1,y_Idx+1,z_Idx  );
     Arr111 = get_Idx3d(Arr,AShapeN, x_Idx+1,y_Idx+1,z_Idx+1);
-    //Arr000 = [x_Idx];
 
     Aget =      Arr000* (1.-rx)*(1.-ry)*(1.-rz)+\
                 Arr001* (1.-rx)*(1.-ry)*(  rz)+\
@@ -55,9 +54,29 @@ __global__ void Interp3d(float *Arr,long *AShapeN, float *inPoint,float *aget){
                 Arr101* (  rx)*(1.-ry)*(  rz)+\
                 Arr110* (  rx)*(  ry)*(1.-rz)+\
                 Arr111* (  rx)*(  ry)*(  rz);
-    aget[0] = Aget;
     
-    //return Aget;
+    return Aget;
+}
+
+__device__ void stepForward(float *Bx,float *By,float *Bz,float *BshapeN,\
+        float *P_start, float *P_end, float s_len, int *flag){
+    float Bx_cur,By_cur,Bz_cur,B0;
+    Bx_cur  = Interp3d(Bx,BshapeN,P_start[0],P_start[1],P_start[2]);
+    By_cur  = Interp3d(Bx,BshapeN,P_start[0],P_start[1],P_start[2]);
+    Bz_cur  = Interp3d(Bx,BshapeN,P_start[0],P_start[1],P_start[2]);
+    B0 = lenVec3(Bx_cur,By_cur,Bz_cur)
+    P_end[0] = P_start[0]+s*Bx_cur/B0
+    P_end[1] = P_start[1]+s*By_cur/B0
+    P_end[2] = P_start[2]+s*Bz_cur/B0
+}
+
+
+__global__ void test_Idx3d(float *Arr,long *AShapeN, long *getIdx,float *res){
+    res[0] = get_Idx3d(Arr,AShapeN,getIdx[0],getIdx[1],getIdx[2]);
+}
+
+__global__ void test_Interp3d(float *Arr,long *AShapeN, float *inPoint,float *res){
+    res[0] = Interp3d(Arr,AShapeN,inPoint[0],inPoint[1],inPoint[2]);
 }
 
 
