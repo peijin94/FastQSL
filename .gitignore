@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# compiled
+*.cubin
+
 # Distribution / packaging
 .Python
 build/
