@@ -3,6 +3,7 @@
 #ifndef M_PI
 #define M_PI 3.14159265
 #endif
+#define MAX_STEP_RATIO 32
 
 __device__ float lenVec3(float xx,float yy,float zz){return sqrt(xx*xx+yy*yy+zz*zz);}
 
@@ -86,6 +87,43 @@ __device__ int checkFlag(float *BshapeN, float *P_cur){
     return flag_res;
 }
 
+__device__ void TraceBline(float *Bx,float *By,float *Bz,int *BshapeN,\
+    float *P_0, float *P_out, float s_len, int *flag){
+        
+        int step_count = 0;
+        float ratio_s;
+        float *P_tmp = new float[3];
+        float *P1 = new float[3];
+        float *P2 = new float[3];
+        int *flag_this = new int[1];
+        
+        flag_this[0] = flag[0];  // start from flag=0
+        
+        P1[0] = P_0[0]; P1[1] = P_0[1]; P1[2] = P_0[2];
+        
+        while ( (flag_this[0]==0) & (step_count<(MAX_STEP_RATIO*BshapeN[0]))){
+            // trace Bline step by step
+            stepForward(Bx,By,Bz,BshapeN,P1, P2, s_len, flag_this);
+            
+            flag_this[0] = checkFlag(BshapeN,P2);  // check status
+            if (flag_this[0]>0){
+                if (flag_this[0]==1){
+                    // linear estimation
+                    ratio_s = P1[2]/(P1[2]-P2[2]);
+                    P_out[0] = P1[0]* (1-ratio_s) + P1[0]* (ratio_s);
+                    P_out[1] = P1[1]* (1-ratio_s) + P1[1]* (ratio_s);
+                    P_out[2] = 0;
+                }
+                else{ // ignore
+                    P_out[0] = P2[0];  P_out[1] = P2[1];  P_out[2] = P2[2];
+                }
+            }
+            P_tmp[0] = P1[0];   P_tmp[1] = P1[1];   P_tmp[2] = P1[2];
+               P1[0] = P2[0];      P1[1] = P2[1];      P1[2] = P2[2];
+        }
+        flag[0] = flag_this[0];
+    }
+
 __global__ void test_Idx3d(float *Arr,int *AShapeN, int *getIdx,float *res){
     res[0] = get_Idx3d(Arr,AShapeN,getIdx[0],getIdx[1],getIdx[2]);
 }
@@ -96,20 +134,33 @@ __global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res
 
 
 
-__global__ void TraceBline(float *Bx,float *By,float *Bz,\
+__global__ void TraceAllBline(float *Bx,float *By,float *Bz,float *BshapeN,\
     float *inp_x,float *inp_y, float *inp_z,\
-    float *out_x,float *out_y, float *out_z, \
-    int *flag_out,unsigned long long int N){
+    float *out_x,float *out_y, float *out_z,\
+    float s_len,\
+    int *flag_out,unsigned long long N){
         
-        float x_cur,y_cur,z_cur;
-
         unsigned long long x = blockIdx.x * blockDim.x + threadIdx.x;
         unsigned long long y = blockIdx.y * blockDim.y + threadIdx.y; 
         unsigned long long idx_cur = (gridDim.x*blockDim.x) * y + x;     
+        
+        float *P_0 = new float[3];
+        float *P_out = new float[3];
+        int *flag_cur = new int[1];
+
+        P_0[0] = inp_x[idx_cur];
+        P_0[1] = inp_y[idx_cur];
+        P_0[2] = inp_z[idx_cur];
+
         if (idx_cur<N){
             x_cur = inp_x[idx_cur];
             y_cur = inp_y[idx_cur];
             z_cur = inp_z[idx_cur];
             // main procedure of B-line tracking 
+            TraceBline(Bx,By,Bz,BshapeN,P_0, P_out, s_len, flag_cur);
+
+            out_x[idx_cur]=P_out[0]
+            out_y[idx_cur]=P_out[1]
+            out_z[idx_cur]=P_out[2]
         }
 }
