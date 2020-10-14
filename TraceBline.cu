@@ -6,10 +6,10 @@
 
 __device__ float lenVec3(float xx,float yy,float zz){return sqrt(xx*xx+yy*yy+zz*zz);}
 
-__device__ float get_Idx3d(float *Arr,long *AShapeN,long xIdx,long yIdx,long zIdx){
+__device__ float get_Idx3d(float *Arr,int *AShapeN,int xIdx,int yIdx,int zIdx){
     return Arr[xIdx* AShapeN[1]*AShapeN[2]  +  yIdx* AShapeN[2]  +  zIdx];}
 
-__device__ float Interp3d(float *Arr,long *AShapeN, \
+__device__ float Interp3d(float *Arr,int *AShapeN, \
     float inPoint_x, float inPoint_y, float inPoint_z){
 
     //algorithm [https://core.ac.uk/download/pdf/44386053.pdf]
@@ -58,24 +58,39 @@ __device__ float Interp3d(float *Arr,long *AShapeN, \
     return Aget;
 }
 
-__device__ void stepForward(float *Bx,float *By,float *Bz,float *BshapeN,\
+__device__ void stepForward(float *Bx,float *By,float *Bz,int *BshapeN,\
         float *P_start, float *P_end, float s_len, int *flag){
     float Bx_cur,By_cur,Bz_cur,B0;
     Bx_cur  = Interp3d(Bx,BshapeN,P_start[0],P_start[1],P_start[2]);
     By_cur  = Interp3d(Bx,BshapeN,P_start[0],P_start[1],P_start[2]);
     Bz_cur  = Interp3d(Bx,BshapeN,P_start[0],P_start[1],P_start[2]);
-    B0 = lenVec3(Bx_cur,By_cur,Bz_cur)
-    P_end[0] = P_start[0]+s*Bx_cur/B0
-    P_end[1] = P_start[1]+s*By_cur/B0
-    P_end[2] = P_start[2]+s*Bz_cur/B0
+    B0 = lenVec3(Bx_cur,By_cur,Bz_cur);
+    P_end[0] = P_start[0]+s_len*Bx_cur/B0;
+    P_end[1] = P_start[1]+s_len*By_cur/B0;
+    P_end[2] = P_start[2]+s_len*Bz_cur/B0;
 }
 
+__device__ void RK4(float *Bx,float *By,float *Bz,float *BshapeN,\
+    float *P_start, float *P_end, float s_len, int *flag){}
 
-__global__ void test_Idx3d(float *Arr,long *AShapeN, long *getIdx,float *res){
+__device__ int checkFlag(float *BshapeN, float *P_cur){
+    // check current status
+    int flag_res = 42; // 42 means un-categorized
+    // flag=0 means inside running box
+    if (P_cur[0]>0 &P_cur[1]>0 &P_cur[2]>0 &  \
+        P_cur[0]<BshapeN[0] &P_cur[1]<BshapeN[1]&P_cur[2]<BshapeN[2] ){flag_res=0;} 
+    // flag=1 means outside box below (normal end of simulation)
+    if (P_cur[0]>0 &P_cur[1]>0 &P_cur[2]<0 &  \
+        P_cur[0]<BshapeN[0] &P_cur[1]<BshapeN[1]&P_cur[2]<BshapeN[2] ){flag_res=1;} 
+
+    return flag_res;
+}
+
+__global__ void test_Idx3d(float *Arr,int *AShapeN, int *getIdx,float *res){
     res[0] = get_Idx3d(Arr,AShapeN,getIdx[0],getIdx[1],getIdx[2]);
 }
 
-__global__ void test_Interp3d(float *Arr,long *AShapeN, float *inPoint,float *res){
+__global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res){
     res[0] = Interp3d(Arr,AShapeN,inPoint[0],inPoint[1],inPoint[2]);
 }
 
@@ -83,12 +98,18 @@ __global__ void test_Interp3d(float *Arr,long *AShapeN, float *inPoint,float *re
 
 __global__ void TraceBline(float *Bx,float *By,float *Bz,\
     float *inp_x,float *inp_y, float *inp_z,\
-    float *out_x,float *out_y, float *out_z, unsigned long long N){
+    float *out_x,float *out_y, float *out_z, \
+    int *flag_out,unsigned long long int N){
+        
+        float x_cur,y_cur,z_cur;
 
         unsigned long long x = blockIdx.x * blockDim.x + threadIdx.x;
         unsigned long long y = blockIdx.y * blockDim.y + threadIdx.y; 
         unsigned long long idx_cur = (gridDim.x*blockDim.x) * y + x;     
         if (idx_cur<N){
+            x_cur = inp_x[idx_cur];
+            y_cur = inp_y[idx_cur];
+            z_cur = inp_z[idx_cur];
             // main procedure of B-line tracking 
         }
 }
