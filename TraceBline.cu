@@ -5,7 +5,7 @@
 #endif
 #define MAX_STEP_RATIO 32
 
-__device__ float lenVec3(float xx,float yy,float zz){return sqrt(xx*xx+yy*yy+zz*zz);}
+__device__ float lenVec3(float xx,float yy,float zz){return sqrtf(xx*xx+yy*yy+zz*zz);}
 
 __device__ float get_Idx3d(float *Arr,int *AShapeN,int xIdx,int yIdx,int zIdx){
     return Arr[xIdx* AShapeN[1]*AShapeN[2]  +  yIdx* AShapeN[2]  +  zIdx];}
@@ -60,28 +60,28 @@ __device__ float Interp3d(float *Arr,int *AShapeN, \
 }
 
 __device__ void stepForward(float *Bx,float *By,float *Bz,int *BshapeN,\
-        float *P_start, float *P_end, float s_len, int *flag){
+        float *P_start, float *P_end, float s_len){
     float Bx_cur,By_cur,Bz_cur,B0;
     Bx_cur  = Interp3d(Bx,BshapeN,P_start[0],P_start[1],P_start[2]);
-    By_cur  = Interp3d(Bx,BshapeN,P_start[0],P_start[1],P_start[2]);
-    Bz_cur  = Interp3d(Bx,BshapeN,P_start[0],P_start[1],P_start[2]);
+    By_cur  = Interp3d(By,BshapeN,P_start[0],P_start[1],P_start[2]);
+    Bz_cur  = Interp3d(Bz,BshapeN,P_start[0],P_start[1],P_start[2]);
     B0 = lenVec3(Bx_cur,By_cur,Bz_cur);
     P_end[0] = P_start[0]+s_len*Bx_cur/B0;
     P_end[1] = P_start[1]+s_len*By_cur/B0;
     P_end[2] = P_start[2]+s_len*Bz_cur/B0;
 }
 
-__device__ void RK4(float *Bx,float *By,float *Bz,float *BshapeN,\
+__device__ void RK4(float *Bx,float *By,float *Bz,int *BshapeN,\
     float *P_start, float *P_end, float s_len, int *flag){}
 
-__device__ int checkFlag(float *BshapeN, float *P_cur){
+__device__ int checkFlag(int *BshapeN, float *P_cur){
     // check current status
     int flag_res = 42; // 42 means un-categorized
     // flag=0 means inside running box
-    if (P_cur[0]>0 &P_cur[1]>0 &P_cur[2]>0 &  \
+    if (P_cur[0]>0. &P_cur[1]>0. &P_cur[2]>0. &  \
         P_cur[0]<BshapeN[0] &P_cur[1]<BshapeN[1]&P_cur[2]<BshapeN[2] ){flag_res=0;} 
     // flag=1 means outside box below (normal end of simulation)
-    if (P_cur[0]>0 &P_cur[1]>0 &P_cur[2]<0 &  \
+    if (P_cur[0]>0. &P_cur[1]>0. &P_cur[2]<0. &  \
         P_cur[0]<BshapeN[0] &P_cur[1]<BshapeN[1]&P_cur[2]<BshapeN[2] ){flag_res=1;} 
 
     return flag_res;
@@ -95,19 +95,19 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int *BshapeN,\
         float *P_tmp = new float[3];
         float *P1 = new float[3];
         float *P2 = new float[3];
-        int *flag_this = new int[1];
+        int flag_this;
         
-        flag_this[0] = flag[0];  // start from flag=0
+        flag_this = 0;  // start from flag=0
         
         P1[0] = P_0[0]; P1[1] = P_0[1]; P1[2] = P_0[2];
         
-        while ( (flag_this[0]==0) & (step_count<(MAX_STEP_RATIO*BshapeN[0]))){
+        while ( (flag_this==0) & (step_count<(MAX_STEP_RATIO*BshapeN[0]))){
             // trace Bline step by step
-            stepForward(Bx,By,Bz,BshapeN,P1, P2, s_len, flag_this);
+            stepForward(Bx,By,Bz,BshapeN,P1, P2, s_len);
             
-            flag_this[0] = checkFlag(BshapeN,P2);  // check status
-            if (flag_this[0]>0){
-                if (flag_this[0]==1){
+            flag_this = checkFlag(BshapeN,P2);  // check status
+            if (flag_this>0){
+                if (flag_this==1){
                     // linear estimation
                     ratio_s = P1[2]/(P1[2]-P2[2]);
                     P_out[0] = P1[0]* (1-ratio_s) + P1[0]* (ratio_s);
@@ -121,7 +121,11 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int *BshapeN,\
             P_tmp[0] = P1[0];   P_tmp[1] = P1[1];   P_tmp[2] = P1[2];
                P1[0] = P2[0];      P1[1] = P2[1];      P1[2] = P2[2];
         }
-        flag[0] = flag_this[0];
+        flag[0] = flag_this;
+        
+        delete[] P_tmp;
+        delete[] P1;
+        delete[] P2;
     }
 
 __global__ void test_Idx3d(float *Arr,int *AShapeN, int *getIdx,float *res){
@@ -132,35 +136,40 @@ __global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res
     res[0] = Interp3d(Arr,AShapeN,inPoint[0],inPoint[1],inPoint[2]);
 }
 
+__device__ int This_N=0;
 
 
-__global__ void TraceAllBline(float *Bx,float *By,float *Bz,float *BshapeN,\
+__global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
     float *inp_x,float *inp_y, float *inp_z,\
     float *out_x,float *out_y, float *out_z,\
-    float s_len,\
-    int *flag_out,unsigned long long N){
+    float *s_len,\
+    int *flag_out,unsigned long long *N){
         
         unsigned long long x = blockIdx.x * blockDim.x + threadIdx.x;
         unsigned long long y = blockIdx.y * blockDim.y + threadIdx.y; 
-        unsigned long long idx_cur = (gridDim.x*blockDim.x) * y + x;     
-        
+        unsigned long long idx_cur = (gridDim.x*blockDim.x) * y + x;                     
         float *P_0 = new float[3];
         float *P_out = new float[3];
         int *flag_cur = new int[1];
 
-        P_0[0] = inp_x[idx_cur];
-        P_0[1] = inp_y[idx_cur];
-        P_0[2] = inp_z[idx_cur];
-
-        if (idx_cur<N){
-            x_cur = inp_x[idx_cur];
-            y_cur = inp_y[idx_cur];
-            z_cur = inp_z[idx_cur];
+        if (idx_cur<N[0]){
             // main procedure of B-line tracking 
-            TraceBline(Bx,By,Bz,BshapeN,P_0, P_out, s_len, flag_cur);
-
-            out_x[idx_cur]=P_out[0]
-            out_y[idx_cur]=P_out[1]
-            out_z[idx_cur]=P_out[2]
+            P_0[0] = inp_x[idx_cur];
+            P_0[1] = inp_y[idx_cur];
+            P_0[2] = inp_z[idx_cur];    
+            TraceBline(Bx,By,Bz,BshapeN,P_0, P_out, s_len[0], flag_cur);
+            out_x[idx_cur] = P_out[0];
+            out_y[idx_cur] = P_out[1];
+            out_z[idx_cur] = P_out[2];
+            flag_out[idx_cur] = flag_cur[0];
+            This_N = This_N+1;
+            printf("[%d][%d], %f, %f, %f\n",This_N, flag_out[idx_cur] ,out_x[idx_cur],out_y[idx_cur],out_z[idx_cur] );
         }
+        delete[] P_0;
+        delete[] P_out;
+        delete[] flag_cur;
+}
+
+__global__ void TestMem(int *flag_out){
+
 }
