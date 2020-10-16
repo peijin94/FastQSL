@@ -22,20 +22,19 @@ Bx = gpuarray.to_gpu(Bx)
 By = gpuarray.to_gpu(By)
 Bz = gpuarray.to_gpu(Bz)
 
-
-
 # shape of B
 BshapeN = np.zeros(3,dtype=np.int32)
 BshapeN[:] = Bx.shape
 
+print(BshapeN)
 
 interp_ratio=4
-x_range = [200,400]
-y_range = [200,400]
+x_range = [200,210]
+y_range = [400,410]
 x_i = np.linspace(*x_range, interp_ratio*(x_range[1]-x_range[0]))
 y_i = np.linspace(*y_range, interp_ratio*(x_range[1]-x_range[0]))
 
-x_arr,y_arr = xx, yy = np.meshgrid(x_i, y_i)
+x_arr,y_arr = np.meshgrid(x_i, y_i)
 
 xy_shape = x_arr.shape
 
@@ -53,10 +52,12 @@ flag_out = np.zeros_like(x_inp).astype(np.int32)
 s_len = np.float32([0.25])
 N=np.ulonglong([x_inp.shape[0]])
 
-blck = (16,16,1)
-grid_a = 2**(np.int(np.log2(np.sqrt(N/256))))
-grd = (grid_a,int(np.ceil(N/grid_a/256)))
+#blck = (16,16,1)
+#grid_a = 2**(np.int(np.log2(np.sqrt(N/256))))
+#grd = (grid_a,int(np.ceil(N/grid_a/256)))
 
+blck=(4,4,1)
+grd = (2,1)
 
 BshapeN = gpuarray.to_gpu(BshapeN)
 x_inp = gpuarray.to_gpu(x_inp)
@@ -71,7 +72,6 @@ s_len    = gpuarray.to_gpu(s_len)
 flag_out = gpuarray.to_gpu(flag_out)
 N        = gpuarray.to_gpu(N)
 
-pycuda.driver.Context.synchronize()
 TraceAllBline(Bx,By,Bz,BshapeN,
              x_inp,y_inp,z_inp,
              x_out,y_out,z_out,
@@ -83,5 +83,5 @@ print('haha')
 print(blck)
 print(grd)
 
-print(N.get())
-print(x_out.get())
+#print(N.get())
+#print(x_out.get())
