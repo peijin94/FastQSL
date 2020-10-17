@@ -34,7 +34,7 @@ if Bx_gpu.shape[0]<=1:
     Bx_gpu = gpuarray.to_gpu(Bx.astype(np.float32))
     By_gpu = gpuarray.to_gpu(By.astype(np.float32))
     Bz_gpu = gpuarray.to_gpu(Bz.astype(np.float32))
-    
+
 # shape of B
 BshapeN = np.zeros(3,dtype=np.int32)
 BshapeN[:] = Bx.shape
@@ -42,8 +42,8 @@ BshapeN[:] = Bx.shape
 interp_ratio=4
 x_range = [0,1163]
 y_range = [0,487]
-x_range = [350,670]
-y_range = [200,400]
+#x_range = [350,670]
+#y_range = [200,400]
 #x_range = [450,550]
 #y_range = [280,350]
 #x_range = [587,588]
@@ -89,7 +89,7 @@ N=np.ulonglong([x_inp.shape[0]])
 
 # for GTX1080ti
 blck=(128,1,1)
-grd = (30,1)
+grd = (60,1)
 
 # chuck everything
 
@@ -129,8 +129,10 @@ TraceAllBline(Bx_gpu,By_gpu,Bz_gpu,BshapeN,
              flag_out,N,step_line_len,
              block=blck,grid=grd)
 
-end = time.time()
-print(end - start)
 
 
 pycuda.driver.Context.synchronize()
+
+
+end = time.time()
+print(end - start)
