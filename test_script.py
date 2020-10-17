@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import pycuda.gpuarray as gpuarray
 import pycuda.driver as cuda
 
+import time
+
+
 a = sciIO.readsav('../B0.sav')
 print(a.keys())
 
@@ -76,12 +79,17 @@ s_len = np.float32([0.25])
 N=np.ulonglong([x_inp.shape[0]])
 
 # for GTX 1060
-blck=(64,1,1)
-grd = (20,1)
+#blck=(64,1,1)
+#grd = (20,1)
 
 # for GTX1080ti
 #blck=(128,1,1)
 #grd = (28,1)
+
+
+# for GTX1080ti
+blck=(128,1,1)
+grd = (30,1)
 
 # chuck everything
 
@@ -110,6 +118,8 @@ Bz_inp = gpuarray.to_gpu(Bz_inp)
 step_line_len = gpuarray.to_gpu(step_line_len)
 
 
+start = time.time()
+
 TraceAllBline(Bx_gpu,By_gpu,Bz_gpu,BshapeN,
              x_inp,y_inp,z_inp,
              x_out,y_out,z_out,
@@ -118,5 +128,9 @@ TraceAllBline(Bx_gpu,By_gpu,Bz_gpu,BshapeN,
              Bx_out,By_out,Bz_out,
              flag_out,N,step_line_len,
              block=blck,grid=grd)
+
+end = time.time()
+print(end - start)
+
 
 pycuda.driver.Context.synchronize()
