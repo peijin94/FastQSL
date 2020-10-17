@@ -13,7 +13,7 @@ __forceinline__ __device__ float dot(float3 a, float3 b)
   return a.x*b.x + a.y*b.y + a.z*b.z;
 }
 
-__device__ float get_Idx3d(float *Arr,int3 AShapeN3,int Idx0,int Idx1,int Idx2){
+__forceinline__ __device__ float get_Idx3d(float *Arr,int3 AShapeN3,int Idx0,int Idx1,int Idx2){
     //return Arr[Idx0* AShapeN[1]*AShapeN[2]  +  Idx1* AShapeN[2]  +  Idx2];
     return Arr[Idx2* AShapeN3.y*AShapeN3.x  +  Idx1*AShapeN3.x  +  Idx0];
 }
@@ -191,69 +191,38 @@ __device__ void stepForward(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     //printf("Inr:%f  :%f  :%f\n",s_len*Bx_cur/B0,s_len*By_cur/B0,s_len*Bz_cur/B0);
 }
 
-__device__ void RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float *P0, float *P_end, float s_len){
-
+__device__ float3 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len){
         float B0_k1,B0_k2,B0_k3,B0_k4;
-        float3 Bk1,Bk2,Bk3,Bk4;
+        float3 Bk1,Bk2,Bk3,Bk4,P_end;
 
-        Bk1 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0[0],P0[1],P0[2]);
+        Bk1 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x,P0.y,P0.z);
         B0_k1  = sqrtf(dot(Bk1,Bk1));
 
-        Bk2 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0[0]+s_len*Bk1.x/B0_k1/2.,P0[1]+s_len*Bk1.y/B0_k1/2.,P0[2]+s_len*Bk1.z/B0_k1/2.);
+        Bk2 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk1.x/B0_k1/2.,P0.y+s_len*Bk1.y/B0_k1/2.,P0.z+s_len*Bk1.z/B0_k1/2.);
         B0_k2  = sqrtf(dot(Bk2,Bk2));
 
-        Bk3  = Interp3dxyz(Bx,By,Bz,BshapeN3,P0[0]+s_len*Bk2.x/B0_k2/2.,P0[1]+s_len*Bk2.y/B0_k2/2.,P0[2]+s_len*Bk2.z/B0_k2/2.);
+        Bk3  = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk2.x/B0_k2/2.,P0.y+s_len*Bk2.y/B0_k2/2.,P0.z+s_len*Bk2.z/B0_k2/2.);
         B0_k3  = sqrtf(dot(Bk3,Bk3));
 
-        Bk4 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0[0]+s_len*Bk3.x/B0_k3,P0[1]+s_len*Bk3.y/B0_k3,P0[2]+s_len*Bk3.z/B0_k3);
+        Bk4 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk3.x/B0_k3,P0.y+s_len*Bk3.y/B0_k3,P0.z+s_len*Bk3.z/B0_k3);
         B0_k4  = sqrtf(dot(Bk4,Bk4));
 
-        P_end[0] = P0[0] + (1./6.)* s_len*( Bk1.x/B0_k1 + 2.0*Bk2.x/B0_k2 + 2.0*Bk3.x/B0_k3 + Bk4.x/B0_k4);
-        P_end[1] = P0[1] + (1./6.)* s_len*( Bk1.y/B0_k1 + 2.0*Bk2.y/B0_k2 + 2.0*Bk3.y/B0_k3 + Bk4.y/B0_k4);
-        P_end[2] = P0[2] + (1./6.)* s_len*( Bk1.z/B0_k1 + 2.0*Bk2.z/B0_k2 + 2.0*Bk3.z/B0_k3 + Bk4.z/B0_k4);   
-        
-        /*
-        float Bx_k1,By_k1,Bz_k1,B0_k1;
-        float Bx_k2,By_k2,Bz_k2,B0_k2;
-        float Bx_k3,By_k3,Bz_k3,B0_k3;
-        float Bx_k4,By_k4,Bz_k4,B0_k4;
-
-        Bx_k1  = Interp3d(Bx,BshapeN,P_start[0],P_start[1],P_start[2]);
-        By_k1  = Interp3d(By,BshapeN,P_start[0],P_start[1],P_start[2]);
-        Bz_k1  = Interp3d(Bz,BshapeN,P_start[0],P_start[1],P_start[2]);
-        B0_k1  = lenVec3(Bx_k1,By_k1,Bz_k1);
-        
-        Bx_k2  = Interp3d(Bx,BshapeN,P_start[0]+s_len*Bx_k1/B0_k1/2,P_start[1]+s_len*By_k1/B0_k1/2,P_start[2]+s_len*Bz_k1/B0_k1/2);
-        By_k2  = Interp3d(By,BshapeN,P_start[0]+s_len*Bx_k1/B0_k1/2,P_start[1]+s_len*By_k1/B0_k1/2,P_start[2]+s_len*Bz_k1/B0_k1/2);
-        Bz_k2  = Interp3d(Bz,BshapeN,P_start[0]+s_len*Bx_k1/B0_k1/2,P_start[1]+s_len*By_k1/B0_k1/2,P_start[2]+s_len*Bz_k1/B0_k1/2);
-        B0_k2  = lenVec3(Bx_k2,By_k2,Bz_k2);
-        
-        Bx_k3  = Interp3d(Bx,BshapeN,P_start[0]+s_len*Bx_k2/B0_k2/2,P_start[1]+s_len*By_k2/B0_k2/2,P_start[2]+s_len*Bz_k2/B0_k2/2);
-        By_k3  = Interp3d(By,BshapeN,P_start[0]+s_len*Bx_k2/B0_k2/2,P_start[1]+s_len*By_k2/B0_k2/2,P_start[2]+s_len*Bz_k2/B0_k2/2);
-        Bz_k3  = Interp3d(Bz,BshapeN,P_start[0]+s_len*Bx_k2/B0_k2/2,P_start[1]+s_len*By_k2/B0_k2/2,P_start[2]+s_len*Bz_k2/B0_k2/2);
-        B0_k3  = lenVec3(Bx_k3,By_k3,Bz_k3);
-        
-        Bx_k4  = Interp3d(Bx,BshapeN,P_start[0]+s_len*Bx_k3/B0_k3,P_start[1]+s_len*By_k3/B0_k3,P_start[2]+s_len*Bz_k3/B0_k3);
-        By_k4  = Interp3d(By,BshapeN,P_start[0]+s_len*Bx_k3/B0_k3,P_start[1]+s_len*By_k3/B0_k3,P_start[2]+s_len*Bz_k3/B0_k3);
-        Bz_k4  = Interp3d(Bz,BshapeN,P_start[0]+s_len*Bx_k3/B0_k3,P_start[1]+s_len*By_k3/B0_k3,P_start[2]+s_len*Bz_k3/B0_k3);
-        B0_k4  = lenVec3(Bx_k4,By_k4,Bz_k4);
-        
-        P_end[0] = P_start[0] + (1./6.)* s_len*(Bx_k1/B0_k1 + 2.0*Bx_k2/B0_k2 + 2.0*Bx_k3/B0_k3 + Bx_k4/B0_k4 );
-        P_end[1] = P_start[1] + (1./6.)* s_len*(By_k1/B0_k1 + 2.0*By_k2/B0_k2 + 2.0*By_k3/B0_k3 + By_k4/B0_k4 );
-        P_end[2] = P_start[2] + (1./6.)* s_len*(Bz_k1/B0_k1 + 2.0*Bz_k2/B0_k2 + 2.0*Bz_k3/B0_k3 + Bz_k4/B0_k4 );   
-*/
-    }
+        P_end.x = P0.x + (1./6.)* s_len*( Bk1.x/B0_k1 + 2.0*Bk2.x/B0_k2 + 2.0*Bk3.x/B0_k3 + Bk4.x/B0_k4);
+        P_end.y = P0.y + (1./6.)* s_len*( Bk1.y/B0_k1 + 2.0*Bk2.y/B0_k2 + 2.0*Bk3.y/B0_k3 + Bk4.y/B0_k4);
+        P_end.z = P0.z + (1./6.)* s_len*( Bk1.z/B0_k1 + 2.0*Bk2.z/B0_k2 + 2.0*Bk3.z/B0_k3 + Bk4.z/B0_k4);   
+        return P_end;
+}
 
 // merge in main 
-__device__ int checkFlag(int3 BshapeN3, float *P_cur){
+inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur){
     // check current status
     int flag_res = 42; // 42 means un-categorized
     // flag=0 means inside running box
-    if (P_cur[0]>=0. &P_cur[1]>0. &P_cur[2]>=0. &  \
-        P_cur[0]<=BshapeN3.x-1. &P_cur[1]<=BshapeN3.y-1. & P_cur[2]<=BshapeN3.z-1. ){flag_res=0;} 
+    if (P_cur.x>=0. &P_cur.y>0. &P_cur.z>=0. &  \
+        P_cur.x<=BshapeN3.x-1. &P_cur.y<=BshapeN3.y-1. & P_cur.z<=BshapeN3.z-1. ){flag_res=0;} 
     // flag=1 means outside box below (normal end of simulation)
-    if (P_cur[0]>=0.           &P_cur[1]>=0.           &P_cur[2]<=0. &  \
-       P_cur[0]<BshapeN3.x-1. &P_cur[1]<BshapeN3.y-1. & P_cur[2]<BshapeN3.z-1. ){flag_res=1;} 
+    if (P_cur.x>=0.           &P_cur.y>=0.           &P_cur.z<=0. &  \
+       P_cur.x<BshapeN3.x-1. &P_cur.y<BshapeN3.y-1. & P_cur.z<BshapeN3.z-1. ){flag_res=1;} 
     //printf("flag:%d\t",flag_res);
     return flag_res;
 }
@@ -266,17 +235,11 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         float ratio_s;
         int flag_this;
         float Bz_tmp, direction;
-        float *P_tmp = new float[3];
-        float *P1 = new float[3];
-        float *P2 = new float[3];
-        
-        flag_this = 0;  // start from flag=0
-        
-        P1[0] = P_0[0]; 
-        P1[1] = P_0[1];
-        P1[2] = P_0[2];
+        float3 PP1,PP2;
 
-        Bz_tmp  = Interp3d(Bz,BshapeN3,P1[0],P1[1],P1[2]);
+        flag_this = 0;  // start from flag=0
+        PP1=make_float3(P_0[0],P_0[1],P_0[2]);
+        Bz_tmp  = Interp3d(Bz,BshapeN3,PP1.x,PP1.y,PP1.z);
         
         if (Bz_tmp>0) {direction=1.0;}
         else{direction=-1.0;}
@@ -284,36 +247,33 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
 
         while ( (flag_this==0) & (step_count<step_lim)){
             // trace Bline step by step
-            RK4(Bx,By,Bz,BshapeN3,P1, P2, s_len*direction);
+            PP2 = RK4(Bx,By,Bz,BshapeN3,PP1, s_len*direction);
             //stepForward(Bx,By,Bz,BshapeN3,P1, P2, s_len*direction);
             //printf("Cur[%d] : %f  :%f  :%f\n",step_count,P2[0],P2[1],P2[2]);
             
-            flag_this = checkFlag(BshapeN3,P2);  // check status
+            flag_this = checkFlag(BshapeN3,PP2);  // check status
             if (flag_this>0){
                 if (flag_this==1){
                     // linear estimation
-                    ratio_s = P1[2]/(P1[2]-P2[2]);
-                    P_out[0] = P1[0]* (1-ratio_s) + P1[0]* (ratio_s);
-                    P_out[1] = P1[1]* (1-ratio_s) + P1[1]* (ratio_s);
-                    P_out[2] = 0;
+                    ratio_s = PP1.z/(PP1.z-PP2.z);
+                    P_out[0] = PP1.x* (1-ratio_s) + PP2.x* (ratio_s);
+                    P_out[1] = PP1.y* (1-ratio_s) + PP2.y* (ratio_s);
+                    P_out[2] = PP1.z* (1-ratio_s) + PP2.z* (ratio_s);
                 }
                 else{ // ignore
-                    P_out[0] = P2[0];  P_out[1] = P2[1];  P_out[2] = P2[2];
+                    P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
                 }
             }
-            P_tmp[0] = P1[0];   P_tmp[1] = P1[1];   P_tmp[2] = P1[2];
-               P1[0] = P2[0];      P1[1] = P2[1];      P1[2] = P2[2];
+            PP1=PP2;
+            //P_tmp[0] = P1[0];   P_tmp[1] = P1[1];   P_tmp[2] = P1[2];
+            //   P1[0] = P2[0];      P1[1] = P2[1];      P1[2] = P2[2];
             step_count = step_count+1;        
             
             //printf("[%d][%f]:%f  :%f  :%f\n",step_count,direction,P1[0],P1[1],P1[2]);
         }
         //printf("[%d][%f]:%f  :%f  :%f\n",step_count,direction,P1[0],P1[1],P1[2]);
         step_len_this[0] = step_count;
-
         flag[0] = flag_this;
-        delete[] P_tmp;
-        delete[] P1;
-        delete[] P2;
     }
 
 
