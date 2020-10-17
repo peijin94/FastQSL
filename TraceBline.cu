@@ -75,7 +75,7 @@ __device__ float Interp3d(float *Arr,int3 AShapeN3, \
     return Aget;
 }
 
-__device__ float3 Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int3 AShapeN3, \
+inline __device__ float3 Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int3 AShapeN3, \
     float inPoint_0, float inPoint_1, float inPoint_2){
 
     //algorithm [https://core.ac.uk/download/pdf/44386053.pdf]
@@ -191,7 +191,7 @@ __device__ void stepForward(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     //printf("Inr:%f  :%f  :%f\n",s_len*Bx_cur/B0,s_len*By_cur/B0,s_len*Bz_cur/B0);
 }
 
-__device__ float3 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len){
+inline __device__ float3 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len){
         float B0_k1,B0_k2,B0_k3,B0_k4;
         float3 Bk1,Bk2,Bk3,Bk4,P_end;
 
@@ -231,7 +231,7 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     float *P_0, float *P_out, float s_len, int *flag, unsigned long long *step_len_this){
         
         unsigned long step_count = 0;
-        unsigned long step_lim = (MAX_STEP_RATIO*3*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
+        unsigned long step_lim = (MAX_STEP_RATIO*2*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
         float ratio_s;
         int flag_this;
         float Bz_tmp, direction;
@@ -326,9 +326,9 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
                 stepLineLen[Bline_ID] = step_len_this[0];
                 //printf("[%d], %f, %f, %f\n", flag_out[idx_cur] ,out_x[idx_cur],out_y[idx_cur],out_z[idx_cur] );
                 // record output B
-                B_inp_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
-                B_inp_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
-                B_inp_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                B_out_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                B_out_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                B_out_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
                 
             }
         }
