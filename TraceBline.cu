@@ -104,6 +104,10 @@ inline __device__ float3 Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int3
     x_Idx = __float2int_rd(inPoint_0);
     y_Idx = __float2int_rd(inPoint_1);
     z_Idx = __float2int_rd(inPoint_2);
+    //if inPoint_0< 0 then
+    //    rx=0
+    //    x_idx=0
+    //endif
     
     //printf("x,y,z %f %f %f\n",inPoint_0,inPoint_1,inPoint_2);
     //printf("x,y,z %d %d %d\n",x_Idx,y_Idx,z_Idx);
