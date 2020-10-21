@@ -1,9 +1,10 @@
+/*! @file TraceBline.cu
+    The kernel of the Q-factor computation: tracing the magnetic field
+*/
 #include <math.h>
 #include <stdio.h>
-#ifndef M_PI
-#define M_PI 3.14159265
-#endif
-#define MAX_STEP_RATIO 4
+#define M_PI 3.14159265   ///< Mathematical constant PI.
+#define MAX_STEP_RATIO 4  ///< Maximum step length compared to box size.
 
 __device__ float lenVec3(float xx,float yy,float zz){
     return sqrtf(xx*xx + yy*yy + zz*zz);}
@@ -13,11 +14,30 @@ __forceinline__ __device__ float dot(float3 a, float3 b)
   return a.x*b.x + a.y*b.y + a.z*b.z;
 }
 
+__forceinline__ __device__ float3 divide3(float3 a, float b)
+{
+  return make_float3(a.x/b , a.y/b , a.z/b);
+}
+
+
+/**
+ * Obtain value from a 3D array, for a given point P.
+ * @param[in] Arr  The pointer of the input array
+ * @param[in] AShapeN3  The shape of the input array, in the form of int3{x,y,z}
+ * @param[in] Idx0  The index of P in the first demention
+ * @param[in] Idx1  The index of P in the second demention
+ * @param[in] Idx2  The index of P in the third demention
+ * 
+ * @return The value of P in the array.
+ */
 __forceinline__ __device__ float get_Idx3d(float *Arr,int3 AShapeN3,int Idx0,int Idx1,int Idx2){
     //return Arr[Idx0* AShapeN[1]*AShapeN[2]  +  Idx1* AShapeN[2]  +  Idx2];
     return Arr[Idx2* AShapeN3.y*AShapeN3.x  +  Idx1*AShapeN3.x  +  Idx0];
 }
-// test of the indexing of function
+
+/**
+* A test terminal of the indexing of function "get_Idx3d"
+*/
 __global__ void  test_Idx3d(float *Arr,int *AShapeN, int *getIdx,float *res){
     printf("idx : %d    %d    %d   ", getIdx[0],getIdx[1],getIdx[2]);
     int3 AShapeN3 = make_int3(AShapeN[0],AShapeN[1],AShapeN[2]);
@@ -87,6 +107,8 @@ inline __device__ float3 Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int3
     int x_Idx,y_Idx,z_Idx;
     float3 res;
 
+    //printf("Idx: %f %f %f\n",inPoint_0,inPoint_1,inPoint_2);
+    /*
     // handle out of boundary problem by extending
     inPoint_0 = (inPoint_0>0) ? inPoint_0 : 0.0001;
     inPoint_1 = (inPoint_1>0) ? inPoint_1 : 0.0001;
@@ -94,6 +116,7 @@ inline __device__ float3 Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int3
     inPoint_0 = (inPoint_0<AShapeN3.x-1) ? inPoint_0 : ((float)AShapeN3.x-1-0.0001);
     inPoint_1 = (inPoint_1<AShapeN3.y-1) ? inPoint_1 : ((float)AShapeN3.y-1-0.0001);
     inPoint_2 = (inPoint_2<AShapeN3.z-1) ? inPoint_2 : ((float)AShapeN3.z-1-0.0001);
+    */
 
     // ratio of the points to adjacent grid
     rx = inPoint_0-floorf(inPoint_0);
@@ -104,14 +127,23 @@ inline __device__ float3 Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int3
     x_Idx = __float2int_rd(inPoint_0);
     y_Idx = __float2int_rd(inPoint_1);
     z_Idx = __float2int_rd(inPoint_2);
-    //if inPoint_0< 0 then
-    //    rx=0
-    //    x_idx=0
-    //endif
     
-    //printf("x,y,z %f %f %f\n",inPoint_0,inPoint_1,inPoint_2);
-    //printf("x,y,z %d %d %d\n",x_Idx,y_Idx,z_Idx);
-
+    if (inPoint_0<= 0.){
+        rx=0; x_Idx=0;}
+    if (inPoint_0>= AShapeN3.x -1){
+        rx=1; x_Idx=AShapeN3.x -2;
+    }
+    if (inPoint_1<= 0.){
+        ry=0; y_Idx=0;}
+    if (inPoint_1>= AShapeN3.y -1){
+        ry=1; y_Idx=AShapeN3.y -2;
+    }
+    if (inPoint_2<= 0.){
+        rz=0.; z_Idx=0;}
+    if (inPoint_2>= AShapeN3.z -1){
+        rz=1.; z_Idx=AShapeN3.z -2;
+    }
+    
     w000 = (1.-rx)*(1.-ry)*(1.-rz);
     w001 = (1.-rx)*(1.-ry)*(   rz);
     w010 = (1.-rx)*(   ry)*(1.-rz);
@@ -178,8 +210,10 @@ inline __device__ float3 Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int3
 }
 
 __global__ void test_Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int *AShapeN, \
-    float inPoint_0, float inPoint_1, float inPoint_2,float *Bxyz){
-        //Interp3dxyz(Arr_x,Arr_y,Arr_z,AShapeN,inPoint_0,inPoint_1,inPoint_2,Bxyz);
+    float *inPoint_0, float *inPoint_1, float *inPoint_2){
+        float3 res;
+        int3 shapeshape = make_int3(AShapeN[0],AShapeN[1],AShapeN[2]);
+        res = Interp3dxyz(Arr_x,Arr_y,Arr_z,shapeshape,inPoint_0[0],inPoint_1[0],inPoint_2[0]);
     }
 
 __device__ void stepForward(float *Bx,float *By,float *Bz,int3 BshapeN3,\
@@ -196,25 +230,82 @@ __device__ void stepForward(float *Bx,float *By,float *Bz,int3 BshapeN3,\
 }
 
 inline __device__ float3 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len){
-        float B0_k1,B0_k2,B0_k3,B0_k4;
-        float3 Bk1,Bk2,Bk3,Bk4,P_end;
+    
+    
+    float B0_k1,B0_k2,B0_k3,B0_k4;
+    float3 Bk1,Bk2,Bk3,Bk4,P_end;
 
-        Bk1 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x,P0.y,P0.z);
-        B0_k1  = sqrtf(dot(Bk1,Bk1));
+    Bk1 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x,P0.y,P0.z);
+    B0_k1  = sqrtf(dot(Bk1,Bk1));
+    Bk2 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk1.x/B0_k1/2.,P0.y+s_len*Bk1.y/B0_k1/2.,P0.z+s_len*Bk1.z/B0_k1/2.);
+    B0_k2  = sqrtf(dot(Bk2,Bk2));
+    Bk3  = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk2.x/B0_k2/2.,P0.y+s_len*Bk2.y/B0_k2/2.,P0.z+s_len*Bk2.z/B0_k2/2.);
+    B0_k3  = sqrtf(dot(Bk3,Bk3));
+    Bk4 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk3.x/B0_k3,P0.y+s_len*Bk3.y/B0_k3,P0.z+s_len*Bk3.z/B0_k3);
+    B0_k4  = sqrtf(dot(Bk4,Bk4));
 
-        Bk2 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk1.x/B0_k1/2.,P0.y+s_len*Bk1.y/B0_k1/2.,P0.z+s_len*Bk1.z/B0_k1/2.);
-        B0_k2  = sqrtf(dot(Bk2,Bk2));
+    P_end.x = P0.x + (1./6.)* s_len*( Bk1.x/B0_k1 + 2.0*Bk2.x/B0_k2 + 2.0*Bk3.x/B0_k3 + Bk4.x/B0_k4);
+    P_end.y = P0.y + (1./6.)* s_len*( Bk1.y/B0_k1 + 2.0*Bk2.y/B0_k2 + 2.0*Bk3.y/B0_k3 + Bk4.y/B0_k4);
+    P_end.z = P0.z + (1./6.)* s_len*( Bk1.z/B0_k1 + 2.0*Bk2.z/B0_k2 + 2.0*Bk3.z/B0_k3 + Bk4.z/B0_k4);   
+    return P_end;
+}
 
-        Bk3  = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk2.x/B0_k2/2.,P0.y+s_len*Bk2.y/B0_k2/2.,P0.z+s_len*Bk2.z/B0_k2/2.);
-        B0_k3  = sqrtf(dot(Bk3,Bk3));
+inline __device__ float4 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len){
+    float B0_k1,B0_k2,B0_k3,B0_k4;
+    float3 Bk1,Bk2,Bk3,Bk4,P_end;
 
-        Bk4 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk3.x/B0_k3,P0.y+s_len*Bk3.y/B0_k3,P0.z+s_len*Bk3.z/B0_k3);
-        B0_k4  = sqrtf(dot(Bk4,Bk4));
+    Bk1 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x,P0.y,P0.z);
+    B0_k1  = sqrtf(dot(Bk1,Bk1));
+    Bk2 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk1.x/B0_k1/2.,P0.y+s_len*Bk1.y/B0_k1/2.,P0.z+s_len*Bk1.z/B0_k1/2.);
+    B0_k2  = sqrtf(dot(Bk2,Bk2));
+    Bk3  = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk2.x/B0_k2/2.,P0.y+s_len*Bk2.y/B0_k2/2.,P0.z+s_len*Bk2.z/B0_k2/2.);
+    B0_k3  = sqrtf(dot(Bk3,Bk3));
+    Bk4 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk3.x/B0_k3,P0.y+s_len*Bk3.y/B0_k3,P0.z+s_len*Bk3.z/B0_k3);
+    B0_k4  = sqrtf(dot(Bk4,Bk4));
 
-        P_end.x = P0.x + (1./6.)* s_len*( Bk1.x/B0_k1 + 2.0*Bk2.x/B0_k2 + 2.0*Bk3.x/B0_k3 + Bk4.x/B0_k4);
-        P_end.y = P0.y + (1./6.)* s_len*( Bk1.y/B0_k1 + 2.0*Bk2.y/B0_k2 + 2.0*Bk3.y/B0_k3 + Bk4.y/B0_k4);
-        P_end.z = P0.z + (1./6.)* s_len*( Bk1.z/B0_k1 + 2.0*Bk2.z/B0_k2 + 2.0*Bk3.z/B0_k3 + Bk4.z/B0_k4);   
-        return P_end;
+    P_end.x = P0.x + (1./6.)* s_len*( Bk1.x/B0_k1 + 2.0*Bk2.x/B0_k2 + 2.0*Bk3.x/B0_k3 + Bk4.x/B0_k4);
+    P_end.y = P0.y + (1./6.)* s_len*( Bk1.y/B0_k1 + 2.0*Bk2.y/B0_k2 + 2.0*Bk3.y/B0_k3 + Bk4.y/B0_k4);
+    P_end.z = P0.z + (1./6.)* s_len*( Bk1.z/B0_k1 + 2.0*Bk2.z/B0_k2 + 2.0*Bk3.z/B0_k3 + Bk4.z/B0_k4);   
+    return P_end;
+}
+
+
+inline __device__ float3 RK4_boundary(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len,int b_dim){
+    float B0_k1,B0_k2,B0_k3,B0_k4;
+    float3 Bk1,Bk2,Bk3,Bk4,P_end,k1,k2,k3,k4;
+    Bk1 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x,P0.y,P0.z);
+    
+    switch(b_dim) {
+        case 0  : B0_k1 = Bk1.x;  break;
+        case 1  : B0_k1 = Bk1.y;  break;
+        case 2  : B0_k1 = Bk1.z;  break;}
+    k1=divide3(Bk1,B0_k1);
+    k1.z=1.;
+    Bk2 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*k1.x/2.,P0.y+s_len*k1.y/2.,P0.z+s_len*k1.z/2.);
+    switch(b_dim) {
+        case 0  : B0_k2 = Bk2.x;  break;
+        case 1  : B0_k2 = Bk2.y;  break;
+        case 2  : B0_k2 = Bk2.z;  break;}
+    k2=divide3(Bk2,B0_k2);
+    k2.z=1.;
+    Bk3  = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*k2.x/2.,P0.y+s_len*k2.y/2.,P0.z+s_len*k2.z/2.);
+    switch(b_dim) {
+        case 0  : B0_k3 = Bk3.x;  break;
+        case 1  : B0_k3 = Bk3.y;  break;
+        case 2  : B0_k3 = Bk3.z;  break;}
+    k3=divide3(Bk3,B0_k3);
+    k3.z=1.;
+    Bk4 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*k3.x,P0.y+s_len*k3.y,P0.z+s_len*k3.z);
+    switch(b_dim) {
+        case 0  : B0_k4 = Bk4.x;  break;
+        case 1  : B0_k4 = Bk4.y;  break;
+        case 2  : B0_k4 = Bk4.z;  break;}    
+    k4=divide3(Bk4,B0_k4);
+    k4.z=1.;
+    P_end.x = P0.x + (1./6.)* s_len*( k1.x + 2.0*k2.x + 2.0*k3.x + k4.x);
+    P_end.y = P0.y + (1./6.)* s_len*( k1.y + 2.0*k2.y + 2.0*k3.y + k4.y);
+    P_end.z = P0.z + (1./6.)* s_len*( k1.z + 2.0*k2.z + 2.0*k3.z + k4.z);   
+    return P_end;
 }
 
 // merge in main 
@@ -225,7 +316,7 @@ inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur){
     if (P_cur.x>=0. &P_cur.y>0. &P_cur.z>=0. &  \
         P_cur.x<=BshapeN3.x-1. &P_cur.y<=BshapeN3.y-1. & P_cur.z<=BshapeN3.z-1. ){flag_res=0;} 
     // flag=1 means outside box below (normal end of simulation)
-    if (P_cur.x>=0.           &P_cur.y>=0.           &P_cur.z<=0. &  \
+    if (P_cur.x>=0.           &P_cur.y>=0.           &P_cur.z<0. &  \
        P_cur.x<BshapeN3.x-1. &P_cur.y<BshapeN3.y-1. & P_cur.z<BshapeN3.z-1. ){flag_res=1;} 
     //printf("flag:%d\t",flag_res);
     return flag_res;
@@ -236,10 +327,11 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         
         unsigned long step_count = 0;
         unsigned long step_lim = (MAX_STEP_RATIO*2*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
-        float ratio_s;
+        float ratio_z;
         int flag_this;
         float Bz_tmp, direction;
         float3 PP1,PP2;
+        float3 B_P1,B_P2;
 
         flag_this = 0;  // start from flag=0
         PP1=make_float3(P_0[0],P_0[1],P_0[2]);
@@ -259,20 +351,26 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
             if (flag_this>0){
                 if (flag_this==1){
                     // linear estimation
-                    ratio_s = PP1.z/(PP1.z-PP2.z);
-                    P_out[0] = PP1.x* (1-ratio_s) + PP2.x* (ratio_s);
-                    P_out[1] = PP1.y* (1-ratio_s) + PP2.y* (ratio_s);
-                    P_out[2] = PP1.z* (1-ratio_s) + PP2.z* (ratio_s);
+                    B_P1 = Interp3dxyz(Bx,By,Bz,BshapeN3,PP1.x,PP1.y,PP1.z);
+                    B_P2 = Interp3dxyz(Bx,By,Bz,BshapeN3,PP2.x,PP2.y,PP2.z);
+                    if ( fabsf(B_P1.z)*20.< sqrtf(dot(B_P1,B_P1)) | fabsf(B_P2.z)*20.< sqrtf(dot(B_P2,B_P2)) ){
+                            P_out[0] = (PP1.x* (-PP2.z) + PP2.x* (PP1.z))/(PP1.z-PP2.z);
+                            P_out[1] = (PP1.y* (-PP2.z) + PP2.y* (PP1.z))/(PP1.z-PP2.z);
+                            P_out[2] = (PP1.z* (-PP2.z) + PP2.z* (PP1.z))/(PP1.z-PP2.z);
+                            flag_this=43;
+                    }
+                    else{
+                        // rk4 to the surface
+                        PP2 = RK4_boundary(Bx,By,Bz,BshapeN3,PP1,-PP1.z,2);
+                        P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
+                    }
                 }
                 else{ // ignore
                     P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
                 }
             }
             PP1=PP2;
-            //P_tmp[0] = P1[0];   P_tmp[1] = P1[1];   P_tmp[2] = P1[2];
-            //   P1[0] = P2[0];      P1[1] = P2[1];      P1[2] = P2[2];
             step_count = step_count+1;        
-            
             //printf("[%d][%f]:%f  :%f  :%f\n",step_count,direction,P1[0],P1[1],P1[2]);
         }
         //printf("[%d][%f]:%f  :%f  :%f\n",step_count,direction,P1[0],P1[1],P1[2]);

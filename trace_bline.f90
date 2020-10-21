@@ -62,7 +62,7 @@ end
 !#########################################################################
 subroutine RK4_boundary(dt, vp0, vp1, b_dim)
 implicit none
-real ::  dt, s, vp0(0:2), vp1(0:2), bp(0:2), &
+real ::  dt, vp0(0:2), vp1(0:2), bp(0:2), &
 k1(0:2), k2(0:2), k3(0:2), k4(0:2)
 integer:: b_dim
 
