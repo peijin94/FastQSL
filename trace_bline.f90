@@ -6,7 +6,7 @@ module qfactor_common
 	point0(0:2), point1(0:2), point2(0:2), ev1(0:2), ev2(0:2), ev3(0:2), step, mstep, cut_coordinate, delta
 	real(8),parameter:: pi=3.141592653589793D0
 	integer, allocatable:: rsboundary(:,:), reboundary(:,:), tFlag(:, :)
-	real, allocatable:: Bfield(:, :, :, :), CurlB(:,:, :, :), &
+	real, allocatable:: Bfield(:, :, :1, :), CurlB(:,:, :, :), &
 	rsF(:, :, :), reF(:, :, :), bnr(:, :), twistF(:, :), q(:, :), qtmp(:, :), length(:, :)
 	logical::twistFlag, vqflag, q0flag, csflag
 end module

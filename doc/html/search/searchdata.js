@@ -1,8 +1,8 @@
 var indexSectionsWithContent =
 {
-  0: "fgmt",
+  0: "fgimrt",
   1: "t",
-  2: "gt",
+  2: "girt",
   3: "m",
   4: "f"
 };
