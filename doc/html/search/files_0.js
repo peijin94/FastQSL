@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['tracebline_2ecu_10',['TraceBline.cu',['../_trace_bline_8cu.html',1,'']]]
+  ['tracebline_2ecuh_8',['TraceBline.cuh',['../_trace_bline_8cuh.html',1,'']]],
+  ['traceblineadaptive_2ecuh_9',['TraceBlineAdaptive.cuh',['../_trace_bline_adaptive_8cuh.html',1,'']]]
 ];

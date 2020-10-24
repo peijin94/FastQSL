@@ -1,8 +1,10 @@
-__device__ float lenVec3(float xx,float yy,float zz);
+/**
+*    @file TraceBlineAdaptive.cuh
+*    @author Peijin Zhang
+*    The kernel of the Q-factor computation: tracing the magnetic field
+*/
 
-__forceinline__ __device__ float dot3(float3 a, float3 b);
 
-__forceinline__ __device__ float3 divide3(float3 a, float b);
 /**
  * Obtain value from a 3D array, for a given point P.
  * @param[in] Arr  The pointer of the input array
@@ -35,7 +37,8 @@ __device__ float Interp3d(float *Arr,int3 AShapeN3, \
     float inPoint_0, float inPoint_1, float inPoint_2);
 
 /**
-* Interpolation of Bx,By,Bz at one time, the position for interpolation is the same for all three arrays.
+* Interpolation of normalized Bx,By,Bz at one time, the position for interpolation is the same for all three arrays.
+* The result is anormalized according to B0
 * @param[in] Arr_x Bx, array for interpolation
 * @param[in] Arr_y By, array for interpolation
 * @param[in] Arr_z Bz, array for interpolation
@@ -43,13 +46,9 @@ __device__ float Interp3d(float *Arr,int3 AShapeN3, \
 * @param[in] inPoint_0 Position in x axis
 * @param[in] inPoint_0 Position in y axis
 * @param[in] inPoint_0 Position in z axis
-* @return The interpolated value of Bx,By,Bz
+* @return The interpolated value of Bx,By,Bz,w
 */
-inline __device__ float3 Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int3 AShapeN3, \
-    float inPoint_0, float inPoint_1, float inPoint_2);
-
-__device__ void stepForward(float *Bx,float *By,float *Bz,int3 BshapeN3,\
-    float *P_start, float *P_end,float s_len);
+inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,int3 AShapeN3, float3 inPoint_this);
 
 inline __device__ float3 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len);
 
@@ -61,6 +60,9 @@ inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur);
 
 __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     float *P_0, float *P_out, float s_len, int *flag, unsigned long long *step_len_this);
+
+__device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+        float *P_0, float *P_out, float s_len, int *flag, unsigned long long *step_len_this);
 
 __global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res);
 

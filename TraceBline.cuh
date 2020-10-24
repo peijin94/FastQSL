@@ -1,3 +1,10 @@
+/**
+*    @file TraceBline.cuh
+*    @author Peijin Zhang
+*    The kernel of the Q-factor computation: tracing the magnetic field
+*/
+
+
 __device__ float lenVec3(float xx,float yy,float zz);
 
 __forceinline__ __device__ float dot3(float3 a, float3 b);

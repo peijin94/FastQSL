@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['m_5fpi_4',['M_PI',['../_trace_bline_8cu.html#ae71449b1cc6e6250b91f539153a7a0d3',1,'TraceBline.cu']]],
-  ['max_5fstep_5fratio_5',['MAX_STEP_RATIO',['../_trace_bline_8cu.html#a5d5b14d9ec9df4d02fa464da0e38c7c0',1,'TraceBline.cu']]]
+  ['test_5fidx3d_5',['test_Idx3d',['../_trace_bline_8cuh.html#ae8af923d4c24dd904d40bce5f89ac2f4',1,'test_Idx3d(float *Arr, int *AShapeN, int *getIdx, float *res):&#160;TraceBline.cuh'],['../_trace_bline_adaptive_8cuh.html#ae8af923d4c24dd904d40bce5f89ac2f4',1,'test_Idx3d(float *Arr, int *AShapeN, int *getIdx, float *res):&#160;TraceBlineAdaptive.cuh']]],
+  ['tracebline_2ecuh_6',['TraceBline.cuh',['../_trace_bline_8cuh.html',1,'']]],
+  ['traceblineadaptive_2ecuh_7',['TraceBlineAdaptive.cuh',['../_trace_bline_adaptive_8cuh.html',1,'']]]
 ];

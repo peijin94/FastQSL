@@ -5,10 +5,10 @@
 */
 #include <math.h>
 #include <stdio.h>
-#include "TraceBline.cuh"
+//#include "TraceBline.cuh"
 #define M_PI 3.14159265   ///< Mathematical constant PI.
 #define MAX_STEP_RATIO 4  ///< Maximum step length compared to box size.
-
+extern "C"{
 __device__ float lenVec3(float xx,float yy,float zz){
     return sqrtf(xx*xx + yy*yy + zz*zz);}
 
@@ -397,4 +397,5 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
 
 __global__ void TestMem(int *flag_out){
 
+}
 }

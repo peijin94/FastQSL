@@ -1,10 +1,9 @@
 var indexSectionsWithContent =
 {
-  0: "fgimrt",
+  0: "fgit",
   1: "t",
-  2: "girt",
-  3: "m",
-  4: "f"
+  2: "git",
+  3: "f"
 };
 
 var indexSectionNames =
@@ -12,8 +11,7 @@ var indexSectionNames =
   0: "all",
   1: "files",
   2: "functions",
-  3: "defines",
-  4: "pages"
+  3: "pages"
 };
 
 var indexSectionLabels =
@@ -21,7 +19,6 @@ var indexSectionLabels =
   0: "All",
   1: "Files",
   2: "Functions",
-  3: "Macros",
-  4: "Pages"
+  3: "Pages"
 };
 

@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['rk4_14',['RK4',['../_trace_bline_8cu.html#a8e7ba8fd252a7c5a410dc94e33217836',1,'TraceBline.cu']]],
-  ['rkf45_15',['RKF45',['../_trace_bline_8cu.html#a276794cf4a2b0e38982e7de46bd6bec3',1,'TraceBline.cu']]]
+  ['test_5fidx3d_14',['test_Idx3d',['../_trace_bline_8cuh.html#ae8af923d4c24dd904d40bce5f89ac2f4',1,'test_Idx3d(float *Arr, int *AShapeN, int *getIdx, float *res):&#160;TraceBline.cuh'],['../_trace_bline_adaptive_8cuh.html#ae8af923d4c24dd904d40bce5f89ac2f4',1,'test_Idx3d(float *Arr, int *AShapeN, int *getIdx, float *res):&#160;TraceBlineAdaptive.cuh']]]
 ];
