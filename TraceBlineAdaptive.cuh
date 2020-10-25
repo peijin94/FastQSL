@@ -58,19 +58,18 @@ inline __device__ float3 RK4_boundary(float *Bx,float *By,float *Bz,int3 BshapeN
 
 inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur);
 
-__device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
-    float *P_0, float *P_out, float s_len, int *flag, unsigned long long *step_len_this);
-
 __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
-        float *P_0, float *P_out, float s_len, int *flag, unsigned long long *step_len_this);
+        float *P_0, float *P_out, float s_len, int *flag, double *len_this,float direction);
 
 __global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res);
 
 __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
     float *inp_x,float *inp_y, float *inp_z,\
-    float *out_x,float *out_y, float *out_z, float *s_len,\
-    float *B_inp_x,float *B_inp_y, float *B_inp_z,\
-    float *B_out_x,float *B_out_y, float *B_out_z,\
-    int *flag_out,unsigned long long *N,unsigned long long *stepLineLen);
+    float *start_x,float *start_y, float *start_z, int *flag_start,\
+    float *end_x,  float *end_y,   float *end_z,   int *flag_end,\
+    float *B_this_x,float *B_this_y, float *B_this_z,\
+    float *B_start_x,float *B_start_y, float *B_start_z,\
+    float *B_end_x,float *B_end_y, float *B_end_z,\
+    float *s_len,unsigned long long *N,double *LineLen);
 
 __global__ void TestMem(int *flag_out);
