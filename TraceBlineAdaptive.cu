@@ -8,7 +8,7 @@
 #include "helper_math.h"
 #define M_PI 3.14159265   ///< Mathematical constant PI.
 #define MAX_STEP_RATIO 4  ///< Maximum step length compared to box size.
-#define TOL 0.00001 // toleranced error for each step
+#define TOL 1e-5 // toleranced error for each step [0.001~0.00001]
 
 extern "C"{
 #include "TraceBlineAdaptive.cuh"
@@ -338,28 +338,31 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     float direction){
         unsigned long step_count = 0;
         unsigned long step_lim = (MAX_STEP_RATIO*2*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
-        float scale;
+        float scale,tol_this;
         float p_mid, p1,p2; // for linear interpolation
         int flag_this;
         int dim_out;
-        float3 PP1,PP2,B_P1,B_P2;
+        float3 PP1,PP2,B_P1,B_P2,B_Pstart;
         float4 P_tmp;
         double len_record=0;
-
         flag_this = 0;  // start from flag=0
         PP1=make_float3(P_0[0],P_0[1],P_0[2]);
+        B_Pstart = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1);
+
+        if (fabsf(B_Pstart.z)<=0.05){tol_this=TOL/800.;}
+        else {tol_this=TOL*powf(fabsf(B_Pstart.z),2);}
+        if (fabsf(B_Pstart.z)<=0.005){tol_this=TOL/80000.;}            
 
         while ( (flag_this==0) & (step_count<step_lim)){
             // trace Bline step by step
             P_tmp = RKF45(Bx,By,Bz,BshapeN3,PP1, s_len*direction);
             PP2 = make_float3(P_tmp.x,P_tmp.y,P_tmp.z);
-            scale = 0.85*powf(TOL/P_tmp.w,0.25);
-            if (scale<0.5){ // redo RK45 when the error is too large
-                s_len = s_len*0.5;
+            scale = powf(tol_this/P_tmp.w/2.,0.25);
+            if (scale<0.6){s_len = s_len*scale;// redo RK45 when the error is too large
                 continue;}
             s_len = s_len*scale;
-            if (s_len>128.)  {s_len=128.;} // upper limit of the step size
-            if (s_len<1./16.){s_len=1./16.;} //lower limit of the step size
+            if (s_len>100.)  {s_len=100.;} // upper limit of the step size
+            if (s_len<1./10.){s_len=1./10.;} //lower limit of the step size
             
             //printf("[%d]  %f  %f  %f  %f  %f\n",step_count,PP2.x,PP2.y,PP2.z,scale,s_len);
             
@@ -374,8 +377,7 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
                     else{p_mid=float(selectInt3xyz(BshapeN3,dim_out));} // step out from max surface
                     B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1);
                     B_P2 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP2);
-                    if (fabsf(selectFloat3xyz(B_P1,dim_out))*50.< sqrtf(dot3(B_P1,B_P1))| \
-                        fabsf(selectFloat3xyz(B_P2,dim_out))*50.< sqrtf(dot3(B_P2,B_P2)) ){
+                    if (fabsf(selectFloat3xyz(B_P1,dim_out))<0.05 | fabsf(selectFloat3xyz(B_P2,dim_out))<0.05){
                             P_out[0] = (PP1.x* (p2-p_mid) + PP2.x* (p_mid-p1))/(p2-p1);
                             P_out[1] = (PP1.y* (p2-p_mid) + PP2.y* (p_mid-p1))/(p2-p1);
                             P_out[2] = (PP1.z* (p2-p_mid) + PP2.z* (p_mid-p1))/(p2-p1);

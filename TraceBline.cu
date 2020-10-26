@@ -308,7 +308,7 @@ __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
                     // linear estimation
                     B_P1 = Interp3dxyz(Bx,By,Bz,BshapeN3,PP1.x,PP1.y,PP1.z);
                     B_P2 = Interp3dxyz(Bx,By,Bz,BshapeN3,PP2.x,PP2.y,PP2.z);
-                    if ( fabsf(B_P1.z)*50.< sqrtf(dot3(B_P1,B_P1)) | fabsf(B_P2.z)*50.< sqrtf(dot3(B_P2,B_P2)) ){
+                    if (1| fabsf(B_P1.z)*20.< sqrtf(dot3(B_P1,B_P1)) | fabsf(B_P2.z)*20.< sqrtf(dot3(B_P2,B_P2)) ){
                             P_out[0] = (PP1.x* (-PP2.z) + PP2.x* (PP1.z))/(PP1.z-PP2.z);
                             P_out[1] = (PP1.y* (-PP2.z) + PP2.y* (PP1.z))/(PP1.z-PP2.z);
                             P_out[2] = (PP1.z* (-PP2.z) + PP2.z* (PP1.z))/(PP1.z-PP2.z);
