@@ -62,7 +62,7 @@ if( bzp>0.0) then
 		end select		
 	else 
 	reboundary(i1, i2)=rbs
-	reF(:, i1, i2)=rs
+	r+F(:, i1, i2)=rs
 		
 	call interpolateB(rs, br)
 	select case(rbs)

@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include "helper_math.h"
 #define M_PI 3.14159265   ///< Mathematical constant PI.
-#define MAX_STEP_RATIO 4  ///< Maximum step length compared to box size.
-#define TOL 1e-5 // toleranced error for each step [0.001~0.00001]
+#define MAX_STEP_RATIO 8  ///< Maximum step length compared to box size.
+#define TOL 3e-4 // toleranced error for each step [0.001~0.00001]
 
 extern "C"{
 #include "TraceBlineAdaptive.cuh"
@@ -351,7 +351,7 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
 
         if (fabsf(B_Pstart.z)<=0.05){tol_this=TOL/800.;}
         else {tol_this=TOL*powf(fabsf(B_Pstart.z),2);}
-        if (fabsf(B_Pstart.z)<=0.005){tol_this=TOL/80000.;}            
+        if (fabsf(B_Pstart.z)<=0.005){tol_this=TOL/8000.;}            
 
         while ( (flag_this==0) & (step_count<step_lim)){
             // trace Bline step by step
@@ -380,8 +380,7 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
                     if (fabsf(selectFloat3xyz(B_P1,dim_out))<0.05 | fabsf(selectFloat3xyz(B_P2,dim_out))<0.05){
                             P_out[0] = (PP1.x* (p2-p_mid) + PP2.x* (p_mid-p1))/(p2-p1);
                             P_out[1] = (PP1.y* (p2-p_mid) + PP2.y* (p_mid-p1))/(p2-p1);
-                            P_out[2] = (PP1.z* (p2-p_mid) + PP2.z* (p_mid-p1))/(p2-p1);
-                            flag_this=9;}
+                            P_out[2] = (PP1.z* (p2-p_mid) + PP2.z* (p_mid-p1))/(p2-p1);}
                     else{// rk4 to the surface
                         PP2 = RK4_boundary(Bx,By,Bz,BshapeN3,PP1,(p_mid-p1),dim_out);
                         P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
@@ -411,7 +410,7 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
     float *inp_x,float *inp_y, float *inp_z,\
     float *start_x,float *start_y, float *start_z, int *flag_start,\
     float *end_x,  float *end_y,   float *end_z,   int *flag_end,\
-    float *B_this_x,float *B_this_y, float *B_this_z,\
+    float *B_this_x,float *B_this_y, float *B_this_z, int *B_flag,\
     float *B_start_x,float *B_start_y, float *B_start_z,\
     float *B_end_x,float *B_end_y, float *B_end_z,\
     float *s_len,unsigned long long *N,double *LineLen){
@@ -451,7 +450,6 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
                 end_z[Bline_ID] = P_out[2];
                 flag_end[Bline_ID] = flag_cur[0];
                 LineLen[Bline_ID] = len_this[0];
-
                 //backward
                 P_0[0] = inp_x[Bline_ID];
                 P_0[1] = inp_y[Bline_ID];
@@ -466,10 +464,16 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
                 flag_start[Bline_ID] = flag_cur[0];
                 LineLen[Bline_ID] = LineLen[Bline_ID] + len_this[0];
                 //printf("[%d], %f, %f, %f\n", flag_out[idx_cur] ,out_x[idx_cur],out_y[idx_cur],out_z[idx_cur] );
+                
                 // record B in plane
                 B_this_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_0[0],P_0[1],P_0[2]);
                 B_this_y[Bline_ID] = Interp3d(By,BshapeN3,P_0[0],P_0[1],P_0[2]);
                 B_this_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_0[0],P_0[1],P_0[2]);
+                
+                if (fabsf(B_this_z[Bline_ID]*100.)<lenVec3xyz(B_this_x[Bline_ID],B_this_y[Bline_ID],B_this_z[Bline_ID])){
+                    B_flag[Bline_ID] = 1;}
+                else{B_flag[Bline_ID] = 0;}
+                //printf("flag***:  %d  %d\n",flag_cur[0],flag_start[Bline_ID]);
             }
         }
         

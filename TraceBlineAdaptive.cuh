@@ -67,7 +67,7 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
     float *inp_x,float *inp_y, float *inp_z,\
     float *start_x,float *start_y, float *start_z, int *flag_start,\
     float *end_x,  float *end_y,   float *end_z,   int *flag_end,\
-    float *B_this_x,float *B_this_y, float *B_this_z,\
+    float *B_this_x,float *B_this_y, float *B_this_z, int *B_flag,\
     float *B_start_x,float *B_start_y, float *B_start_z,\
     float *B_end_x,float *B_end_y, float *B_end_z,\
     float *s_len,unsigned long long *N,double *LineLen);
