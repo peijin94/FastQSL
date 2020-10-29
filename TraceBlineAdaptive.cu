@@ -8,7 +8,7 @@
 #include "helper_math.h"
 #define M_PI 3.14159265   ///< Mathematical constant PI.
 #define MAX_STEP_RATIO 32  ///< Maximum step length compared to box size.
-#define TOL 3e-4 // toleranced error for each step [0.001~0.00001]
+#define TOL 1e-4 // toleranced error for each step [0.001~0.00001]
 
 extern "C"{
 #include "TraceBlineAdaptive.cuh"

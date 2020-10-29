@@ -15,7 +15,7 @@ def CookPseudoLine(x_end_arr,   y_end_arr,  z_end_arr,   flag_end_arr,
     Bz_out_arr,Bz_0_arr,x_start_arr,y_start_arr,z_start_arr,
     x_end_arr,y_end_arr,z_end_arr)]
     
-    Bz0_start=Bx_cut_start;Bz0_end=Bz_cut_end;
+    Bz0_start=Bz_cut_start; Bz0_end=Bz_cut_end;
     
     # init gpu mem
     (cut_inp_x,cut_inp_y,cut_inp_z,cut_start_x,cut_start_y,cut_start_z,
