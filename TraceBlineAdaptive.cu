@@ -8,7 +8,7 @@
 #include "helper_math.h"
 #define M_PI 3.14159265    ///< Mathematical constant PI.
 #define MAX_STEP_RATIO 16  ///< Maximum step length compared to box size.
-#define TOL 5e-4 // toleranced error for each step [0.001~0.00001]
+#define TOL 1e-3 // toleranced error for each step [0.001~0.00001]
 
 extern "C"{
 #include "TraceBlineAdaptive.cuh"
@@ -237,9 +237,10 @@ inline __device__ float4 RKF45(float *Bx,float *By,float *Bz,int3 BshapeN3, floa
     k6 = s_len*Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+ (a61*k1+ a62*k2+ a63*k3+ a64*k4+ a65*k5));
     
     P_a = P0+ (b1*k1  +b2*k2  +b3*k3+  b4*k4  +b5*k5  +b6*k6);
-    P_b = P0+ (bb1*k1 +bb2*k2 +bb3*k3+ bb4*k4 +bb5*k5);
+    //P_b = P0+ (bb1*k1 +bb2*k2 +bb3*k3+ bb4*k4 +bb5*k5);
 
-    err_step = lenVec3(P_a-P_b);
+    //err_step = lenVec3(P_a-P_b);
+    err_step = lenVec3(ce1*k1+ce3*k3+ce4*k4+ce5*k5+ce6*k6);
     res_end.x = P_a.x;
     res_end.y = P_a.y;
     res_end.z = P_a.z;
@@ -374,7 +375,7 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
                     else{p_mid=float(selectInt3xyz(BshapeN3,dim_out));} // step out from max surface
                     B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1);
                     B_P2 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP2);
-                    if (fabsf(selectFloat3xyz(B_P1,dim_out))<0.05 | fabsf(selectFloat3xyz(B_P2,dim_out))<0.05){
+                    if (fabsf(selectFloat3xyz(B_P1,dim_out))<0.2 | fabsf(selectFloat3xyz(B_P2,dim_out))<0.2){
                             P_out[0] = (PP1.x* (p2-p_mid) + PP2.x* (p_mid-p1))/(p2-p1);
                             P_out[1] = (PP1.y* (p2-p_mid) + PP2.y* (p_mid-p1))/(p2-p1);
                             P_out[2] = (PP1.z* (p2-p_mid) + PP2.z* (p_mid-p1))/(p2-p1); }
@@ -476,5 +477,6 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
         delete[] P_0;
         delete[] P_out;
         delete[] flag_cur;
+        delete[] len_this;
 }
 }
