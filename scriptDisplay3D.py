@@ -6,30 +6,21 @@ xx = npzfile['arr_1']
 yy = npzfile['arr_2']
 zz = npzfile['arr_3']
 
-grid = pv.StructuredGrid(xx.flatten(), yy.flatten(), zz.flatten())
+grid = pv.StructuredGrid(xx, yy, zz)
 
-grid["vol"] = Qube.flatten()
-contours = grid.contour([100])
+grid["vol"] = Qube.T.flatten()
+contours = grid.contour([4000])
 clim = [4000, 40000]
 p = pv.Plotter()
 largest = contours.connectivity(largest=True)
-pv.set_plot_theme('document')
+surf = largest.extract_geometry()
+#smooth = surf.smooth(n_iter=10)
+#pv.set_plot_theme('document')
 p = pv.Plotter()
-
-p.add_mesh(contours, color='#965434')
-p.enable_eye_dome_lighting()
-#p.add_mesh(mesh.outline(), color="k")
-#p.add_mesh(largest, scalars=contours.points[:, 2], show_scalar_bar=False)
+#9ac4d9
+p.add_mesh(surf, color='#9ac4d9', smooth_shading=True,opacity=0.4 )
+#p.enable_eye_dome_lighting()
+p.add_mesh(surf.outline(), color="k")
+p.show_bounds()
 p.show()
 
-
-#p.add_volume(Qube, cmap="inferno", clim=clim,
-#             opacity=opacity, opacity_unit_distance=4,mapper='gpu')
-#p.camera_position =[(-800, 1200, 666),
-# (179.5, 299.5, 99.5),
-# (0.4, -0.1, 0.9)]
-#p.add_bounds_axes()
-#p.show_axes()
-#a=p.show()
-#print(p)
-#print(a)

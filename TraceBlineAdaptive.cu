@@ -326,13 +326,13 @@ inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur){
 }
 
 __global__ void testTraceBlineAdap(float *Bx,float *By,float *Bz,int* BshapeN3,\
-    float *P_0, float *P_out, float* s_len, int *flag, double *len_this){
+    float *P_0, float *P_out, float *ncross_dir, float* s_len, int *flag, double *len_this){
         float tol_coef = 1.0;
         TraceBlineAdap(Bx,By,Bz, make_int3(BshapeN3[0],BshapeN3[1],BshapeN3[2]),\
-         P_0, P_out, s_len[0], flag, len_this,1.0,tol_coef);
+         P_0, P_out,ncross_dir, s_len[0], flag, len_this,1.0,tol_coef);
     }
 __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
-    float *P_0, float *P_out, float s_len, int *flag, double *len_this,\
+    float *P_0, float *P_out, float *ncross_dir, float s_len, int *flag, double *len_this,\
     float direction,float tol_coef){
         unsigned long step_count = 0;
         unsigned long step_lim = (MAX_STEP_RATIO*2*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
@@ -340,15 +340,16 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         float p_mid, p1,p2; // for linear interpolation
         int flag_this;
         int dim_out;
-        float3 PP1,PP2,B_P1,B_P2,B_Pstart;
+        float3 PP1,PP2,B_P1,B_P2,B_Pstart, ncross_dir3;
         float4 P_tmp;
         double len_record=0;
         flag_this = 0;  // start from flag=0
         PP1=make_float3(P_0[0],P_0[1],P_0[2]);
+        ncross_dir3=make_float3(ncross_dir[0],ncross_dir[1],ncross_dir[2]);
         B_Pstart = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1);
 
-        if (fabsf(B_Pstart.z)<=0.05){tol_this=TOL/8e3;}
-        else {tol_this=TOL*powf(fabsf(B_Pstart.z),3);}
+        if (fabsf(dot3(B_Pstart,ncross_dir3))<=0.05){tol_this=TOL/8e3;}
+        else {tol_this=TOL*powf(fabsf(dot3(B_Pstart,ncross_dir3)),3);}
         
         tol_this=tol_this*tol_coef;
         while ( (flag_this==0) & (step_count<step_lim)){
@@ -406,7 +407,7 @@ __global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res
 }
 
 __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
-    float *inp_x,float *inp_y, float *inp_z,\
+    float *inp_x,float *inp_y, float *inp_z, float *inp_cross_dir,\
     float *start_x,float *start_y, float *start_z, int *flag_start,\
     float *end_x,  float *end_y,   float *end_z,   int *flag_end,\
     float *B_this_x,float *B_this_y, float *B_this_z, int *B_flag,\
@@ -419,10 +420,9 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
         unsigned long long idx_cur,dim_all,works_per_thread,Bline_ID,line_idx;
         int3 BshapeN3 = make_int3(BshapeN[0],BshapeN[1],BshapeN[2]);
 
-        dim_all = (gridDim.x*blockDim.x*gridDim.y*blockDim.y); //8192
+        dim_all = (gridDim.x*blockDim.x*gridDim.y*blockDim.y); // upper lim 8192 
         idx_cur = (gridDim.x*blockDim.x) * y + x;                     
         works_per_thread = N[0]/dim_all+1;
-        //printf("  %llu ",works_per_thread);
         
         float *P_0 = new float[3];
         float *P_out = new float[3];
@@ -438,7 +438,7 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
                 P_0[0] = inp_x[Bline_ID];
                 P_0[1] = inp_y[Bline_ID];
                 P_0[2] = inp_z[Bline_ID]; 
-                TraceBlineAdap(Bx,By,Bz,BshapeN3,P_0, P_out, s_len[0], flag_cur,len_this,1.0,tol_coef[0]); // forward and backward
+                TraceBlineAdap(Bx,By,Bz,BshapeN3,P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,1.0,tol_coef[0]); // forward and backward
                 B_end_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
                 B_end_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
                 B_end_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
@@ -451,7 +451,7 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
                 P_0[0] = inp_x[Bline_ID];
                 P_0[1] = inp_y[Bline_ID];
                 P_0[2] = inp_z[Bline_ID]; 
-                TraceBlineAdap(Bx,By,Bz,BshapeN3,P_0, P_out, s_len[0], flag_cur,len_this,-1.0,tol_coef[0]); // forward and backward
+                TraceBlineAdap(Bx,By,Bz,BshapeN3,P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,-1.0,tol_coef[0]); // forward and backward
                 B_start_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
                 B_start_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
                 B_start_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
@@ -467,7 +467,8 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
                 B_this_y[Bline_ID] = Interp3d(By,BshapeN3,P_0[0],P_0[1],P_0[2]);
                 B_this_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_0[0],P_0[1],P_0[2]);
                 
-                if (fabsf(B_this_z[Bline_ID]*100.)<lenVec3xyz(B_this_x[Bline_ID],B_this_y[Bline_ID],B_this_z[Bline_ID])){
+                if (fabsf(B_this_x[Bline_ID]*inp_cross_dir[0]+B_this_y[Bline_ID]*inp_cross_dir[1]+B_this_z[Bline_ID]*inp_cross_dir[2])*100.\
+                  <lenVec3xyz(B_this_x[Bline_ID],B_this_y[Bline_ID],B_this_z[Bline_ID])){
                     B_flag[Bline_ID] = 1;}
                 else{B_flag[Bline_ID] = 0;}
                 //printf("flag***:  %d  %d\n",flag_cur[0],flag_start[Bline_ID]);

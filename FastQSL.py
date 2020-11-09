@@ -66,7 +66,9 @@ def QCalcPlane(x_end_arr,   y_end_arr,  z_end_arr,   flag_end_arr,
      x_start_arr, y_start_arr,z_start_arr, flag_start_arr,
      Bx_in_arr,   By_in_arr,  Bz_in_arr,
      Bx_out_arr,  By_out_arr, Bz_out_arr,
-     Bz_0_arr,    B_flag_arr, stride_step):
+     Bx_0_arr,    By_0_arr,   Bz_0_arr,    
+     B_flag_arr, stride_step,
+     CrossBC_dir= cupy.array([0,0,1],dtype=cupy.float32)):
 
     (X1,Y1,X2,Y2)= [cupy.zeros(B_flag_arr.shape,dtype=cupy.float32) 
                    for _ in range(4)];    
@@ -91,7 +93,10 @@ def QCalcPlane(x_end_arr,   y_end_arr,  z_end_arr,   flag_end_arr,
     c = (dy2xc*dy1yc-dy2yc*dy1xc);
     d = (dy2yc*dx1xc-dy2xc*dx1yc);
 
-    bnr = cupy.abs(Bz_in_arr[1:-1,1:-1])/(cupy.abs(Bz_0_arr[1:-1,1:-1])**2
+    B_norm = (Bx_0_arr*CrossBC_dir[0]+ 
+              By_0_arr*CrossBC_dir[1]+ Bz_0_arr*CrossBC_dir[2])
+    
+    bnr = cupy.abs(Bz_in_arr[1:-1,1:-1])/(cupy.abs(B_norm[1:-1,1:-1])**2
                     ) *cupy.abs(Bz_out_arr[1:-1,1:-1]) *((1/stride_step/2)**4)
     Q = (a**2+b**2+c**2+d**2)*bnr
     Q[cupy.where(Q<1.0)]=1.0
