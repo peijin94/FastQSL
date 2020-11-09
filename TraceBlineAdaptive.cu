@@ -392,8 +392,6 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
             }
             PP1=PP2;
             step_count=step_count+1;
-        
-        
         }
         //printf("[%d][%f]:%f  :%f  :%f\n",step_count,P1[0],P1[1],P1[2]);
         len_this[0] = len_record;
