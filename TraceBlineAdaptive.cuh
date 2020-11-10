@@ -48,7 +48,7 @@ __device__ float Interp3d(float *Arr,int3 AShapeN3, \
 * @param[in] inPoint_0 Position in z axis
 * @return The interpolated value of Bx,By,Bz,w
 */
-inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,int3 AShapeN3, float3 inPoint_this);
+inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,int3 AShapeN3, float3 inPoint_this,bool norm_flag);
 
 inline __device__ float3 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len);
 
@@ -59,6 +59,7 @@ inline __device__ float3 RK4_boundary(float *Bx,float *By,float *Bz,int3 BshapeN
 inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur);
 
 __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+    float *curB_x, float *curB_y,  float *curB_z,float *twist,bool *curB_flag,\
     float *P_0, float *P_out, float *ncross_dir, float s_len, int *flag, double *len_this,\
     float direction,float tol_coef);
 
@@ -66,6 +67,7 @@ __global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res
 
 
 __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
+    float *curB_x, float *curB_y,  float *curB_z,float *twist,bool *curB_flag,\
     float *inp_x,float *inp_y, float *inp_z, float *inp_cross_dir,\
     float *start_x,float *start_y, float *start_z, int *flag_start,\
     float *end_x,  float *end_y,   float *end_z,   int *flag_end,\

@@ -1,6 +1,6 @@
 import numpy as np
 import pyvista as pv
-npzfile = np.load('../Qube.npz')
+npzfile = np.load('../QubeNew.npz')
 Qube = npzfile['arr_0']
 xx = npzfile['arr_1']
 yy = npzfile['arr_2']

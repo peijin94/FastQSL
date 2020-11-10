@@ -114,3 +114,4 @@ def trilerp(Bx,By,Bz,vec):
     Bvec = np.array([bx,by,bz])
     return Bvec
 
+    
