@@ -4,11 +4,13 @@ npzfile = np.load('../QubePOT.npz')
 Qube = npzfile['Qube']
 #Twube = npzfile['arr_4']
 
-xi = npzfile['xi']
-yi = npzfile['yi']
-zi = npzfile['zi']
+axis_r = 0.364257
+xi = npzfile['xi']*axis_r
+yi = npzfile['yi']*axis_r
+zi = npzfile['zi']*axis_r
 
 Bz0 = npzfile['Bz0']
+
 
 xx3,yy3,zz3 = np.meshgrid(xi, yi, zi,indexing='ij')
 
@@ -17,7 +19,6 @@ zz2 = np.zeros_like(xx2)
 B0mesh = pv.StructuredGrid(xx2, yy2, zz2)
 
 grid = pv.StructuredGrid(xx3, yy3, zz3)
-
 grid["vol"] = Qube.T.flatten()
 contours = grid.contour([40000])
 
@@ -38,9 +39,9 @@ p.add_mesh(surf, color='#9ac4d9', smooth_shading=True,opacity=0.4 )
 p.add_mesh(B0mesh,scalars=Bz0.T, cmap='gray',clim=[-1500,1500],show_scalar_bar=True)
 #p.enable_eye_dome_lighting()
 #p.add_mesh(surf.outline(), color="k")
-p.camera_position = [(918.4679349260575, -222.2585068804345, 282.83224256932135),
- (510.0, 320.0, 60.0),
- (-0.13889900119010723, 0.28509344203728243, 0.9483821997358055)]
+p.camera_position = [(309.21929818544663, -39.476961535608346, 62.5609895585235),
+ (206.8292875784721, 95.43630460720914, 14.52431785900496),
+ (-0.16273952375365774, 0.21903523353563947, 0.9620495901347398)]
 p.show_bounds()
 a=p.show()
 
