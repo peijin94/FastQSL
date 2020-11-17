@@ -229,7 +229,7 @@ inline __device__ float4 RKF45(float *Bx,float *By,float *Bz,int3 BshapeN3, floa
     a51=439./216.;   a52= -8.;          a53=  3680./513.;   a54=-845./4104.;
     a61= -8./27.;    a62= 2.;           a63= -3544./2565.;  a64= 1859./4104.; a65= -11./40.;
     b1 = 16./135.;   b2 =0.;  b3 = 6656./12825.;   b4 = 28561./56430.; b5 = -9./50.;  b6 = 2./55.; 
-    bb1= 25./216.;   bb2=0.;  bb3 = 1408./2565.; bb4 = 2197./4104.;  bb5 = -1./5.;
+    //bb1= 25./216.;   bb2=0.;  bb3 = 1408./2565.; bb4 = 2197./4104.;  bb5 = -1./5.;
     ce1 = 1./360.;     ce3 = -128./4275.;    ce4 = -2197./75240.;   ce5 = 1./50.;   ce6 = 2./55.;
     
     k1 = s_len*Interp3dxyzn(Bx,By,Bz,BshapeN3,P0,true);
@@ -239,7 +239,7 @@ inline __device__ float4 RKF45(float *Bx,float *By,float *Bz,int3 BshapeN3, floa
     k5 = s_len*Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+ (a51*k1+ a52*k2+ a53*k3+ a54*k4),true);
     k6 = s_len*Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+ (a61*k1+ a62*k2+ a63*k3+ a64*k4+ a65*k5),true);
     
-    P_a = P0+ (b1*k1  +b2*k2  +b3*k3+  b4*k4  +b5*k5  +b6*k6);
+    P_a = P0+ (b1*k1  +b3*k3+  b4*k4  +b5*k5  +b6*k6); //b2=0
     //P_b = P0+ (bb1*k1 +bb2*k2 +bb3*k3+ bb4*k4 +bb5*k5);
 
     //err_step = lenVec3(P_a-P_b);
