@@ -1,6 +1,6 @@
 import numpy as np
 
-def trilerp0(Bx,By,Bz,vec,nk=np):
+def trilerp(Bx,By,Bz,vec,nk=np): #interpolate B_vec from Bx,By,Bz
     idx=0
     for val in vec:
         if val<0:
@@ -18,7 +18,7 @@ def trilerp0(Bx,By,Bz,vec,nk=np):
     return nk.array([nk.sum(B*weight) for B in (Bxblock,Byblock,Bzblock)])
     
 def Bnorm(Bx,By,Bz,vec,nk=np):
-    B0=trilerp0(Bx,By,Bz,vec,nk=nk)
+    B0=trilerp(Bx,By,Bz,vec,nk=nk)
     return B0/nk.sqrt(nk.sum(B0**2))
 
 def RK4_bline(Bx,By,Bz,PP0,xl,yl,zl,steprange,dr=0.25,nk=np):
