@@ -413,11 +413,6 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     }
 
 
-__global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res){
-    int3 AShapeN3 = make_int3(AShapeN[0],AShapeN[1],AShapeN[2]);
-    res[0] = Interp3d(Arr,AShapeN3,inPoint[0],inPoint[1],inPoint[2]);
-}
-
 __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
     float *curB_x, float *curB_y,  float *curB_z,double *twist,bool *curB_flag,\
     float *inp_x,float *inp_y, float *inp_z, float *inp_cross_dir,\

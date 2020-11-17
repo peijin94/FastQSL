@@ -83,6 +83,19 @@ def QCalcPlane(x_end_arr,   y_end_arr,  z_end_arr,   flag_end_arr,
     X1[idx_X1] = y_start_arr[idx_X1]; Y1[idx_X1] = z_start_arr[idx_X1]
     X2[idx_X2] = y_end_arr[idx_X2];   Y2[idx_X2] = z_end_arr[idx_X2]
 
+    # mark nan
+    nan_arr = cupy.zeros(B_flag_arr.shape,dtype=cupy.float32)  
+    
+    nan_arr[1:-1,1:-1] =( cupy.abs(flag_start_arr[2:  ,1:-1]-flag_start_arr[1:-1,1:-1])
+                        + cupy.abs(flag_start_arr[0:-2,1:-1]-flag_start_arr[1:-1,1:-1])
+                        + cupy.abs(flag_start_arr[1:-1,2:  ]-flag_start_arr[1:-1,1:-1])
+                        + cupy.abs(flag_start_arr[1:-1,0:-2]-flag_start_arr[1:-1,1:-1])
+                      )+( cupy.abs(flag_end_arr[2:  ,1:-1]-flag_end_arr[1:-1,1:-1])
+                        + cupy.abs(flag_end_arr[0:-2,1:-1]-flag_end_arr[1:-1,1:-1])
+                        + cupy.abs(flag_end_arr[1:-1,2:  ]-flag_end_arr[1:-1,1:-1])
+                        + cupy.abs(flag_end_arr[1:-1,0:-2]-flag_end_arr[1:-1,1:-1]))
+    
+    
     dx2xc = X2[2:,1:-1]-X2[0:-2,1:-1]; dx2yc = X2[1:-1,2:]-X2[1:-1,0:-2];
     dy2xc = Y2[2:,1:-1]-Y2[0:-2,1:-1]; dy2yc = Y2[1:-1,2:]-Y2[1:-1,0:-2];
     dx1xc = X1[2:,1:-1]-X1[0:-2,1:-1]; dx1yc = X1[1:-1,2:]-X1[1:-1,0:-2];
@@ -97,21 +110,10 @@ def QCalcPlane(x_end_arr,   y_end_arr,  z_end_arr,   flag_end_arr,
               By_0_arr*CrossBC_dir[1]+ Bz_0_arr*CrossBC_dir[2])
     
     bnr = cupy.abs(Bz_in_arr[1:-1,1:-1])/(cupy.abs(B_norm[1:-1,1:-1])**2
-                    ) *cupy.abs(Bz_out_arr[1:-1,1:-1]) *((1/stride_step/2)**4)
+                    ) *cupy.abs(Bz_out_arr[1:-1,1:-1]) *((1./(2.*stride_step))**4.)
     Q = (a**2+b**2+c**2+d**2)*bnr
     Q[cupy.where(Q<1.0)]=1.0
+    Q[nan_arr[1:-1,1:-1]>0]=cupy.nan 
     return Q
-
-
-def trilerp(Bx,By,Bz,vec):
-    idx0 = np.int32(np.floor(vec))
-    w0 = np.stack(((1-(vec-idx0)),((vec-idx0))))
-    weight = np.array([w0[i,0]*w0[j,1]*w0[k,2] for i in range(2) 
-                       for j in range(2) for k in range(2)]).reshape(2,2,2) 
-    bx = np.sum(Bx[idx0[0]:(idx0[0]+2),idx0[1]:(idx0[1]+2),idx0[2]:(idx0[2]+2)]*weight)
-    by = np.sum(By[idx0[0]:(idx0[0]+2),idx0[1]:(idx0[1]+2),idx0[2]:(idx0[2]+2)]*weight)
-    bz = np.sum(Bz[idx0[0]:(idx0[0]+2),idx0[1]:(idx0[1]+2),idx0[2]:(idx0[2]+2)]*weight)
-    Bvec = np.array([bx,by,bz])
-    return Bvec
 
     
