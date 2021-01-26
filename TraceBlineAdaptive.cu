@@ -356,7 +356,7 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
             // trace Bline step by step
             P_tmp = RKF45(Bx,By,Bz,BshapeN3,PP1, s_len*direction);
             PP2 = make_float3(P_tmp.x,P_tmp.y,P_tmp.z);
-            scale = powf(tol_this/P_tmp.w/2.,0.25);
+            scale = powf(tol_this/P_tmp.w/11.09,0.2);
             if (scale<0.618){s_len = s_len*0.618;// redo RK45 when the error is too large
                 continue; }
             s_len = s_len*scale;
