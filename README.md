@@ -23,6 +23,7 @@ Buy a computer with Nvidia GPU
 * Install GPU driver, 驱动精灵[http://www.drivergenius.com/](http://www.drivergenius.com/) is a easy way for windows, for 'apt' based Linux, try ```sudo ubuntu-drivers autoinstall```.
 * [https://developer.nvidia.com/Cuda-downloads](https://developer.nvidia.com/Cuda-downloads) Download cuda **v10.2! (don't install the newest)**
 * Install anaconda [https://docs.anaconda.com/anaconda/install/windows/](https://docs.anaconda.com/anaconda/install/windows/)
+* Install git
 
 #### Build Enviroment
 
@@ -56,9 +57,18 @@ python -m pip install cupy-cuda102
 
 ### Run
 
+#### Download code
+
+```bash
+git clone https://github.com/Pjer-zhang/FastQSL.git
+```
+
+#### Run in jupyterlab
+
 In the env created last section, type command
 
 ```bash
+cd FastQSL
 python -m jupyterlab --port 9999
 ```
 
