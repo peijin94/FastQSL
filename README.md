@@ -24,6 +24,7 @@ Buy a computer with Nvidia GPU
 * [https://developer.nvidia.com/Cuda-downloads](https://developer.nvidia.com/Cuda-downloads) Download cuda **v10.2! (don't install the newest)**
 * Install anaconda [https://docs.anaconda.com/anaconda/install/windows/](https://docs.anaconda.com/anaconda/install/windows/)
 * Install git
+* Install c/c++ compiler, for Windows [https://visualstudio.microsoft.com/visual-cpp-build-tools](https://visualstudio.microsoft.com/visual-cpp-build-tools), for linux ```sudo apt install gcc```
 
 #### Build Enviroment
 
@@ -52,7 +53,7 @@ after this you should be able to see a '(fastqsl)' in your command line.
 
 ```bash
 conda install numpy matplotlib pyvista scipy jupyterlab
-python -m pip install cupy-cuda102 
+python -m pip install cupy-cuda102 ipython-autotime
 ```
 
 ### Run
