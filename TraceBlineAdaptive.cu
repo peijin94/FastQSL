@@ -3,6 +3,7 @@
 *    @author Peijin Zhang
 *    The kernel of the Q-factor computation: tracing the magnetic field
 */
+#include <corecrt_math.h>
 #include <math.h>
 #include <stdio.h>
 #include "helper_math.h"
@@ -381,19 +382,26 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
                     dim_out = int((flag_this-1)/2);
                     p1 = selectFloat3xyz(PP1,dim_out);
                     p2 = selectFloat3xyz(PP2,dim_out);
-                    if (flag_this%2==1){p_mid=0;} // step out from min surface
-                    else{p_mid=float(selectInt3xyz(BshapeN3,dim_out));} // step out from max surface
-                    B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true);
-                    B_P2 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP2,true);
-                    if (fabsf(selectFloat3xyz(B_P1,dim_out))<0.2 | fabsf(selectFloat3xyz(B_P2,dim_out))<0.2){
-                            P_out[0] = (PP1.x* (p2-p_mid) + PP2.x* (p_mid-p1))/(p2-p1);
-                            P_out[1] = (PP1.y* (p2-p_mid) + PP2.y* (p_mid-p1))/(p2-p1);
-                            P_out[2] = (PP1.z* (p2-p_mid) + PP2.z* (p_mid-p1))/(p2-p1); }
-                    else{// rk4 to the surface
-                        PP2 = RK4_boundary(Bx,By,Bz,BshapeN3,PP1,(p_mid-p1),dim_out);
-                        P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
+
+                    if (fabsf(p1-p2)>1e-3){
+                        if (flag_this%2==1){p_mid=0;} // step out from min surface
+                        else{p_mid=float(selectInt3xyz(BshapeN3,dim_out));} // step out from max surface
+                        B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true);
+                        B_P2 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP2,true);
+                        if (fabsf(selectFloat3xyz(B_P1,dim_out))<0.2 | fabsf(selectFloat3xyz(B_P2,dim_out))<0.2){
+                                P_out[0] = (PP1.x* (p2-p_mid) + PP2.x* (p_mid-p1))/(p2-p1);
+                                P_out[1] = (PP1.y* (p2-p_mid) + PP2.y* (p_mid-p1))/(p2-p1);
+                                P_out[2] = (PP1.z* (p2-p_mid) + PP2.z* (p_mid-p1))/(p2-p1); }
+                        else{// rk4 to the surface
+                            PP2 = RK4_boundary(Bx,By,Bz,BshapeN3,PP1,(p_mid-p1),dim_out);
+                            P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
+                        }
+                        len_record = len_record+fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));    
                     }
-                    len_record = len_record+fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));
+                    else{
+                        P_out[0] = PP1.x;  P_out[1] = PP1.y;  P_out[2] = PP1.z;
+                    }
+
                     if (curB_flag[0]){
                         twist = twist+dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI \
                         *fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));
