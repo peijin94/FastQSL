@@ -32,6 +32,86 @@ inline __device__ float3 divide3(float3 a, float b)
 inline __device__ float3 normalize3(float4 a)
 {  return make_float3(a.x/a.w,  a.y/a.w,  a.z/a.w);}
 
+typedef struct float9{
+    float3 x;
+    float3 y;
+    float3 z;
+}float9;
+
+inline __host__ __device__ float9 make_float9(float3 a, float3 a, float3 a)
+{
+    float9 res;
+    res.x = a;
+    res.y = b;
+    res.z = c;
+    return res;
+}
+
+// + - x / for float9 and float9
+inline __host__ __device__ float9 operator+(float9 a, float9 b)
+{
+    return make_float9(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+inline __host__ __device__ float9 operator-(float9 a, float9 b)
+{
+    return make_float9(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+inline __host__ __device__ float9 operator*(float9 a, float9 b)
+{
+    return make_float9(a.x * b.x, a.y * b.y, a.z * b.z);
+}
+
+inline __host__ __device__ float9 operator/(float9 a, float9 b)
+{
+    return make_float9(a.x / b.x, a.y / b.y, a.z / b.z);
+}
+
+// + - x / for float and float9
+inline __host__ __device__ float9 operator+(float a, float9 b)
+{
+    return make_float9(a + b.x, a + b.y, a + b.z);
+}
+
+inline __host__ __device__ float9 operator-(float a, float9 b)
+{
+    return make_float9(a + b.x, a + b.y, a + b.z);
+}
+
+inline __host__ __device__ float9 operator*(float a, float9 b)
+{
+    return make_float9(a + b.x, a + b.y, a + b.z);
+}
+
+inline __host__ __device__ float9 operator/(float a, float9 b)
+{
+    return make_float9(a + b.x, a + b.y, a + b.z);
+}
+
+
+// + - x / for float and float9
+inline __host__ __device__ float9 operator+(float9 b, float a)
+{
+    return make_float9(a + b.x, a + b.y, a + b.z);
+}
+
+inline __host__ __device__ float9 operator-(float9 b, float a)
+{
+    return make_float9(a + b.x, a + b.y, a + b.z);
+}
+
+inline __host__ __device__ float9 operator*(float9 b, float a)
+{
+    return make_float9(a + b.x, a + b.y, a + b.z);
+}
+
+inline __host__ __device__ float9 operator/(float9 b, float a)
+{
+    return make_float9(a + b.x, a + b.y, a + b.z);
+}
+
+
 __forceinline__ __device__ float get_Idx3d(float *Arr,int3 AShapeN3,int Idx0,int Idx1,int Idx2){
     //return Arr[Idx0* AShapeN[1]*AShapeN[2]  +  Idx1* AShapeN[2]  +  Idx2];
     return Arr[Idx2* AShapeN3.y*AShapeN3.x  +  Idx1*AShapeN3.x  +  Idx0];
@@ -329,7 +409,7 @@ inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur){
     return flag_res;
 }
 
-__device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+__device__ void TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     float *curB_x, float *curB_y,  float *curB_z,double *twist_this,bool *curB_flag,\
     float *P_0, float *P_out, float *ncross_dir, float s_len, int *flag, double *len_this,\
     float direction,float tol_coef){
@@ -456,7 +536,7 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
                 P_0[1] = inp_y[Bline_ID];
                 P_0[2] = inp_z[Bline_ID]; 
                 twist_this[0]=0;
-                TraceBlineAdap(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+                TraceBlineScott(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
                     P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,1.0,tol_coef[0]); // forward and backward
                 B_end_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
                 B_end_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
