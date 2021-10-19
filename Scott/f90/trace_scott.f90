@@ -45,52 +45,52 @@ if((dt+dt1) .ne. 0.0) vector9_1=(vector9_0*dt1+vector9_1*dt)/(dt+dt1)
 end subroutine modify_foot_scott
 
 
-!subroutine graduvb(vp, grad_UVB)
-!implicit none
-!real:: vp(0:2),vp1(0:2),vp2(0:2), uvbp1(0:2), uvbp2(0:2), grad_UVB(0:2,0:2)
-!integer:: i
-!!----------------------------------------------------------------------------
-!do i=0,2
-!	vp1=vp
-!	vp2=vp
-!	vp1(i)=vp(i)-0.001
-!	vp2(i)=vp(i)+0.001
-!	call interpolateUVB(vp1, uvbp1)
-!	call interpolateUVB(vp2, uvbp2)
-!	grad_UVB(i,0:2)=(uvbp2-uvbp1)/0.002
-!enddo
-!end subroutine graduvb
-
-
-subroutine interpolate_graduvb(vp, uvbp, grad_UVB)
-use trace_common
-use field_common
+subroutine graduvb(vp, grad_UVB)
 implicit none
-real::w(0:1,0:2), weigh(0:1,0:1,0:1), vp(0:2), bp(0:2), uvbp(0:2), grad_UVB(0:2,0:2)
-integer:: round(0:1,0:2), i, j, k
+real:: vp(0:2),vp1(0:2),vp2(0:2), uvbp1(0:2), uvbp2(0:2), grad_UVB(0:2,0:2)
+integer:: i
 !----------------------------------------------------------------------------
-round(0,:)=floor(vp)
-w(1,:)=vp-round(0,:)
-
 do i=0,2
-	if (vp(i) .lt. 0.0) then
-		round(0,i)=0	
-		w(1,i)=0.0		
-	else if (vp(i) .ge. pmax(i)) then
-		round(0,i)=r0max(i)
-		w(1,i)=1.0
-	endif
+	vp1=vp
+	vp2=vp
+	vp1(i)=vp(i)-0.001
+	vp2(i)=vp(i)+0.001
+	call interpolateUVB(vp1, uvbp1)
+	call interpolateUVB(vp2, uvbp2)
+	grad_UVB(i,0:2)=(uvbp2-uvbp1)/0.002
 enddo
+end subroutine graduvb
 
-round(1,:)=round(0,:)+1
-w(0,:)=1.0-w(1,:)
 
-forall(i=0:1,j=0:1,k=0:1) weigh(i,j,k)=w(i,0)*w(j,1)*w(k,2)
-forall(i=0:2) Bp(i)=sum(Bfield(i, round(:,0) ,round(:,1), round(:,2))*weigh)
-forall(i=0:2,j=0:2) grad_UVB(i,j)=sum(gradUVBfield(i, j, round(:,0) ,round(:,1), round(:,2))*weigh)
-uvbp=bp/norm2(bp)
+!subroutine interpolate_graduvb(vp, uvbp, grad_UVB)
+!use trace_common
+!use field_common
+!implicit none
+!real::w(0:1,0:2), weigh(0:1,0:1,0:1), vp(0:2), bp(0:2), uvbp(0:2), grad_UVB(0:2,0:2)
+!integer:: round(0:1,0:2), i, j, k
+!!----------------------------------------------------------------------------
+!round(0,:)=floor(vp)
+!w(1,:)=vp-round(0,:)!
+!
+!do i=0,2
+!	if (vp(i) .lt. 0.0) then!
+!		round(0,i)=0	
+!		w(1,i)=0.0		
+!	else if (vp(i) .ge. pmax(i)) then
+!		round(0,i)=r0max(i)
+!		w(1,i)=1.0
+!	endif
+!enddo
 
-end subroutine interpolate_graduvb
+!round(1,:)=round(0,:)+1
+!w(0,:)=1.0-w(1,:)
+
+!forall(i=0:1,j=0:1,k=0:1) weigh(i,j,k)=w(i,0)*w(j,1)*w(k,2)
+!forall(i=0:2) Bp(i)=sum(Bfield(i, round(:,0) ,round(:,1), round(:,2))*weigh)
+!forall(i=0:2,j=0:2) grad_UVB(i,j)=sum(gradUVBfield(i, j, round(:,0) ,round(:,1), round(:,2))*weigh)
+!uvbp=bp/norm2(bp)
+!
+!end subroutine interpolate_graduvb
 
 
 subroutine f_scott(vector9, vector9_k)
@@ -99,9 +99,9 @@ real ::  vector9(0:8),vector9_k(0:8), grad_UVB(0:2,0:2), vp(0:2), uvbp(0:2)
 integer:: i
 !----------------------------------------------------------------------------
 vp=vector9(0:2)
-!call interpolateUVB(vp, uvbp)
-!call graduvb(vp, grad_UVB)
-call interpolate_graduvb(vp, uvbp, grad_UVB)
+call interpolateUVB(vp, uvbp)
+call graduvb(vp, grad_UVB)
+!call interpolate_graduvb(vp, uvbp, grad_UVB)
 vector9_k(0:2)= uvbp
 forall(i=0:2) vector9_k(3+i)= dot_product(vector9(3:5),grad_UVB(0:2,i))
 forall(i=0:2) vector9_k(6+i)= dot_product(vector9(6:8),grad_UVB(0:2,i))

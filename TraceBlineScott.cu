@@ -10,6 +10,7 @@
 #define M_PI 3.14159265    ///< Mathematical constant PI.
 #define MAX_STEP_RATIO 2  ///< Maximum step length compared to box size.
 #define INIT_DT 0.25 // default step length
+#define N_STEP_LIM 10000 
 #define TOL 1e-3 // toleranced error for each step [0.001~0.00001]
 
 extern "C"{
@@ -280,21 +281,63 @@ inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,\
 }
 
 
-__global__ void test_Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int *AShapeN, \
-    float *inPoint_0, float *inPoint_1, float *inPoint_2){
-        float3 res,pointthis;
-        pointthis=make_float3(inPoint_0[0],inPoint_1[0],inPoint_2[0]);
-        int3 shapeshape = make_int3(AShapeN[0],AShapeN[1],AShapeN[2]);
-        res = Interp3dxyzn(Arr_x,Arr_y,Arr_z,shapeshape,pointthis,true);
-    }
+inline __device__ float9 grad_unit_vec_B(float *Arr_x,float *Arr_y,float *Arr_z,\
+    int3 AShapeN3, float3 inPoint_this){
+        float3 vp1,vp2;
+        float3 BN1,BN2;
+        float9 res;
+
+        vp1=inPoint_this; vp2=inPoint_this; vp1.x+=0.001; vp2.x+=0.001;
+        BN1 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vp1,true);
+        BN2 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vp2,true);
+        res.x = (BN2-BN1)/0.002
+
+        vp1=inPoint_this; vp2=inPoint_this; vp1.y+=0.001; vp2.y+=0.001;
+        BN1 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vp1,true);
+        BN2 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vp2,true);
+        res.y = (BN2-BN1)/0.002
+
+        vp1=inPoint_this; vp2=inPoint_this; vp1.z+=0.001; vp2.z+=0.001;
+        BN1 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vp1,true);
+        BN2 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vp2,true);
+        res.z = (BN2-BN1)/0.002
+
+        return res
+}
+    
+
+
+inline __device__ float9 f_scott( float *Arr_x,float *Arr_y,float *Arr_z,\
+    int3 AShapeN3, float9 vec_in){
+
+        float3 BN1;
+        float9 Jac_B,vec_out;
+        BN1 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vec_in.x ,true);
+        Jac_B = grad_unit_vec_B(Arr_x,Arr_y,Arr_z,AShapeN3, vec_in.x)
+
+        vec_out.x = BN1;
+
+        vec_out.y.x = dot(vec_in.y, make_float3(Jac_B.x.x,Jac_B.y.x,Jac_B.z.x);
+        vec_out.y.y = dot(vec_in.y, make_float3(Jac_B.x.y,Jac_B.y.y,Jac_B.z.y);
+        vec_out.y.z = dot(vec_in.y, make_float3(Jac_B.x.z,Jac_B.y.z,Jac_B.z.z); 
+
+        vec_out.z.x = dot(vec_in.z, make_float3(Jac_B.x.x,Jac_B.y.x,Jac_B.z.x);
+        vec_out.z.y = dot(vec_in.z, make_float3(Jac_B.x.y,Jac_B.y.y,Jac_B.z.y);
+        vec_out.z.z = dot(vec_in.z, make_float3(Jac_B.x.z,Jac_B.y.z,Jac_B.z.z); 
+
+        return vec_out;
+}
+
+
 
 /**
 * Adaptive step-size integral scheme
 */
-inline __device__ float4 RKF45(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len){
-    float3 k1,k2,k3,k4,k5,k6;
-    float3 P_a,P_b;
-    float4 res_end;
+inline __device__ float RKF45_Scott(float *Bx,float *By,float *Bz,\
+    int3 BshapeN3, float9 vec_in, float9 *vec_out, float s_len){
+    float9 k1,k2,k3,k4,k5,k6;
+    float9 P_a,P_b;
+    float9 res_end;
     float err_step; 
 
     // parameters of the Butcher tableau
@@ -313,37 +356,21 @@ inline __device__ float4 RKF45(float *Bx,float *By,float *Bz,int3 BshapeN3, floa
     //bb1= 25./216.;   bb2=0.;  bb3 = 1408./2565.; bb4 = 2197./4104.;  bb5 = -1./5.;
     ce1 = 1./360.;     ce3 = -128./4275.;    ce4 = -2197./75240.;   ce5 = 1./50.;   ce6 = 2./55.;
     
-    k1 = s_len*Interp3dxyzn(Bx,By,Bz,BshapeN3,P0,true);
-    k2 = s_len*Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+ (a21*k1),true);
-    k3 = s_len*Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+ (a31*k1+ a32*k2),true);
-    k4 = s_len*Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+ (a41*k1+ a42*k2+ a43*k3),true);
-    k5 = s_len*Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+ (a51*k1+ a52*k2+ a53*k3+ a54*k4),true);
-    k6 = s_len*Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+ (a61*k1+ a62*k2+ a63*k3+ a64*k4+ a65*k5),true);
+    k1 = s_len*f_scott(Bx,By,Bz,BshapeN3,vec_in);
+    k2 = s_len*f_scott(Bx,By,Bz,BshapeN3,vec_in+ (a21*k1));
+    k3 = s_len*f_scott(Bx,By,Bz,BshapeN3,vec_in+ (a31*k1+ a32*k2));
+    k4 = s_len*f_scott(Bx,By,Bz,BshapeN3,vec_in+ (a41*k1+ a42*k2+ a43*k3));
+    k5 = s_len*f_scott(Bx,By,Bz,BshapeN3,vec_in+ (a51*k1+ a52*k2+ a53*k3+ a54*k4));
+    k6 = s_len*f_scott(Bx,By,Bz,BshapeN3,vec_in+ (a61*k1+ a62*k2+ a63*k3+ a64*k4+ a65*k5));
     
-    P_a = P0+ (b1*k1  +b3*k3+  b4*k4  +b5*k5  +b6*k6); //b2=0
+    vec_out = vec_in+ (b1*k1  +b3*k3+  b4*k4  +b5*k5  +b6*k6); //b2=0
     //P_b = P0+ (bb1*k1 +bb2*k2 +bb3*k3+ bb4*k4 +bb5*k5);
 
     //err_step = lenVec3(P_a-P_b);
-    err_step = lenVec3(ce1*k1+ce3*k3+ce4*k4+ce5*k5+ce6*k6);
-    res_end.x = P_a.x;
-    res_end.y = P_a.y;
-    res_end.z = P_a.z;
-    res_end.w = err_step;
-    return res_end;
+    err_step = lenVec3(ce1*k1.x+ce3*k3.x+ce4*k4.x+ce5*k5.x+ce6*k6.x);
+    return err_step;
 }
 
-/**
-* 4-stage Runge-Kutta integral function
-*/
-inline __device__ float3 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len){
-    float3 k1,k2,k3,k4,P_end;
-    k1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0,true);
-    k2 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+s_len*k1/2.,true);
-    k3 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+s_len*k2/2.,true);
-    k4 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+s_len*k3,true);
-    P_end = P0+1./6.*s_len*(k1 +2.*k2 +2.*k3 +k4);
-    return P_end;
-}
 
 inline __device__ float selectFloat3xyz(float3 a, int dim){
     float res;
@@ -461,21 +488,21 @@ __device__ void TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
                 if(B_Pstart.z*dir_sign < 0){ // downward    
                     if(dir_sign==-1) {vec9_s=vec9; rbs=1;}
                     else             {vec9_e=vec9; rbe=1;}
-                    break;
+                    continue;
                 }
             }   
             
             dL = 0;
-            while ( (flag_this==0) & (len_record<len_lim)){
+            dt = INIT_DT*dir_sign;
+            while ( (flag_this==0) & (len_record<len_lim) & (step_count<N_STEP_LIM)){
                 // trace Bline step by step
-
                 len_record = len_record+dL;
-
-
-
+                
                 P_tmp = RKF45(Bx,By,Bz,BshapeN3,PP1, s_len*direction);
                 PP2 = make_float3(P_tmp.x,P_tmp.y,P_tmp.z);
                 scale = powf(tol_this/P_tmp.w/11.09,0.2);
+                //out
+                
                 if (scale<0.618){s_len = s_len*0.618;// redo RK45 when the error is too large
                     continue; }
                 s_len = s_len*scale;

@@ -636,12 +636,12 @@ enddo
  close(8)
 deallocate(Bfield_tmp)
 !----------------------------------------------------------------------------
-allocate(gradUVBfield(0:2,0:2, 0:nxm1, 0:nym1, 0:nzm1))
-!$OMP PARALLEL DO  PRIVATE(k), schedule(DYNAMIC) 
-do k=0,nzm1
-	call grad_UVB_calculate(k)
-enddo	
-!$OMP END PARALLEL DO
+!allocate(gradUVBfield(0:2,0:2, 0:nxm1, 0:nym1, 0:nzm1))
+!!$OMP PARALLEL DO  PRIVATE(k), schedule(DYNAMIC) 
+!do k=0,nzm1
+!	call grad_UVB_calculate(k)
+!enddo	
+!!$OMP END PARALLEL DO
 !----------------------------------------------------------------------------
 if(twistFlag)then
 	allocate(curlB(0:2, 0:nxm1, 0:nym1, 0:nzm1))
