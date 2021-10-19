@@ -9,6 +9,7 @@
 #include "helper_math.h"
 #define M_PI 3.14159265    ///< Mathematical constant PI.
 #define MAX_STEP_RATIO 2  ///< Maximum step length compared to box size.
+#define INIT_DT 0.25 // default step length
 #define TOL 1e-3 // toleranced error for each step [0.001~0.00001]
 
 extern "C"{
@@ -21,7 +22,6 @@ inline __device__ float lenVec3(float3 a){
 
 inline __device__ float dot3(float3 a, float3 b)
 {  return a.x*b.x + a.y*b.y + a.z*b.z;}
-
 
 inline __device__ double ddot3(float3 a, float3 b)
 {  return (double)a.x*b.x + (double)a.y*b.y + (double)a.z*b.z;}
@@ -76,39 +76,39 @@ inline __host__ __device__ float9 operator+(float a, float9 b)
 
 inline __host__ __device__ float9 operator-(float a, float9 b)
 {
-    return make_float9(a + b.x, a + b.y, a + b.z);
+    return make_float9(a - b.x, a - b.y, a - b.z);
 }
 
 inline __host__ __device__ float9 operator*(float a, float9 b)
 {
-    return make_float9(a + b.x, a + b.y, a + b.z);
+    return make_float9(a * b.x, a * b.y, a * b.z);
 }
 
 inline __host__ __device__ float9 operator/(float a, float9 b)
 {
-    return make_float9(a + b.x, a + b.y, a + b.z);
+    return make_float9(a / b.x, a / b.y, a / b.z);
 }
 
 
 // + - x / for float and float9
-inline __host__ __device__ float9 operator+(float9 b, float a)
+inline __host__ __device__ float9 operator+(float9 a, float b)
 {
-    return make_float9(a + b.x, a + b.y, a + b.z);
+    return make_float9(a.x + b, a.y + b, a.z + b);
 }
 
-inline __host__ __device__ float9 operator-(float9 b, float a)
+inline __host__ __device__ float9 operator-(float9 a, float b)
 {
-    return make_float9(a + b.x, a + b.y, a + b.z);
+    return make_float9(a.x - b, a.y - b, a.z - z);
 }
 
-inline __host__ __device__ float9 operator*(float9 b, float a)
+inline __host__ __device__ float9 operator*(float9 a, float b)
 {
-    return make_float9(a + b.x, a + b.y, a + b.z);
+    return make_float9(a.x * b, a.y * b, a.z * b);
 }
 
-inline __host__ __device__ float9 operator/(float9 b, float a)
+inline __host__ __device__ float9 operator/(float9 a, float b)
 {
-    return make_float9(a + b.x, a + b.y, a + b.z);
+    return make_float9(a.x / b, a.y / b, a.z / b);
 }
 
 
@@ -416,16 +416,127 @@ __device__ void TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         unsigned long step_count = 0;
         //unsigned long step_lim = (MAX_STEP_RATIO*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
         double len_lim = (MAX_STEP_RATIO*1.0*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
-        float scale,tol_this;
+        float q0, q_perp0;
+        double len_record=0;
+        double twist=0;
+        float3 PP1,PP2; // point coordinate
+        float3 B_P1,B_P2,B_Pstart, ncross_dir3,cur_P1;
+        float3 Norm_B_Pstart;
+        float3 v0,vs,ve,u0,us,ue;
+        int dir_sign;
+        float9 vec9,vec9_0,vec9_1,vec9_s,vec9_e;
+
+        float scale,tol_this,dL;
         float p_mid, p1,p2; // for linear interpolation
         int flag_this;
         int dim_out;
-        float3 PP1,PP2,B_P1,B_P2,B_Pstart, ncross_dir3,cur_P1;
         float4 P_tmp;
-        double len_record=0;
-        double twist=0;
+        bool z0flag;
+
+
+        B_Pstart = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true); // b0
+
+        v0 = make_float3(B_Pstart.y,-B_Pstart.x,0)
+        v0 = normalize( v0-dot(v0,B_Pstart)*B_Pstart )
+
+        u0.x = B_Pstart.y * v0.z - B_Pstart.z * v0.y 
+        u0.y = B_Pstart.z * v0.x - B_Pstart.x * v0.z 
+        u0.z = B_Pstart.x * v0.y - B_Pstart.y * v0.x
+        u0 = normalize(u0) 
+
         flag_this = 0;  // start from flag=0
         PP1=make_float3(P_0[0],P_0[1],P_0[2]);
+
+        if(PP1.z<0){return void();} // quit if under 0
+
+        z0flag = (PP1.z)<1e-6;
+        len_record=0;
+        // forward(+1) and backward(-1) direction
+        for(dir_sign=-1,dir_sign<2,dir_sign+=2){
+            vec9.x=PP1;
+            vec9.y=u0;
+            vec9.z=v0;
+
+            if(z0flag){ // start from z0
+                if(B_Pstart.z*dir_sign < 0){ // downward    
+                    if(dir_sign==-1) {vec9_s=vec9; rbs=1;}
+                    else             {vec9_e=vec9; rbe=1;}
+                    break;
+                }
+            }   
+            
+            dL = 0;
+            while ( (flag_this==0) & (len_record<len_lim)){
+                // trace Bline step by step
+
+                len_record = len_record+dL;
+
+
+
+                P_tmp = RKF45(Bx,By,Bz,BshapeN3,PP1, s_len*direction);
+                PP2 = make_float3(P_tmp.x,P_tmp.y,P_tmp.z);
+                scale = powf(tol_this/P_tmp.w/11.09,0.2);
+                if (scale<0.618){s_len = s_len*0.618;// redo RK45 when the error is too large
+                    continue; }
+                s_len = s_len*scale;
+                if (s_len>100.)  {s_len=100.;} // upper limit of the step size
+                if (s_len<1./10.){s_len=1./10.;} //lower limit of the step size
+                //len_record = len_record+s_len;
+                len_record = len_record+lenVec3(PP1-PP2);
+                if (curB_flag[0]){
+                    cur_P1 = Interp3dxyzn(curB_x,curB_y,curB_z,BshapeN3,PP1,false);
+                    B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,false);
+                    twist = twist+dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI*lenVec3(PP1-PP2);
+                }
+    
+                flag_this = checkFlag(BshapeN3,PP2);  // check status
+                if (flag_this>0){ // out of box
+                    len_record = len_record-lenVec3(PP1-PP2); // reverse step len
+                    if (curB_flag[0]){// reverse twist
+                        twist = twist-dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI*lenVec3(PP1-PP2);
+                    }
+                    if (flag_this<=6){ // step out from surface
+                        // linear estimation
+                        dim_out = int((flag_this-1)/2);
+                        p1 = selectFloat3xyz(PP1,dim_out);
+                        p2 = selectFloat3xyz(PP2,dim_out);
+    
+                        if (fabsf(p1-p2)>1e-3){
+                            if (flag_this%2==1){p_mid=0;} // step out from min surface
+                            else{p_mid=float(selectInt3xyz(BshapeN3,dim_out));} // step out from max surface
+                            B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true);
+                            B_P2 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP2,true);
+                            if (fabsf(selectFloat3xyz(B_P1,dim_out))<0.2 | fabsf(selectFloat3xyz(B_P2,dim_out))<0.2){
+                                    P_out[0] = (PP1.x* (p2-p_mid) + PP2.x* (p_mid-p1))/(p2-p1);
+                                    P_out[1] = (PP1.y* (p2-p_mid) + PP2.y* (p_mid-p1))/(p2-p1);
+                                    P_out[2] = (PP1.z* (p2-p_mid) + PP2.z* (p_mid-p1))/(p2-p1); }
+                            else{// rk4 to the surface
+                                PP2 = RK4_boundary(Bx,By,Bz,BshapeN3,PP1,(p_mid-p1),dim_out);
+                                P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
+                            }
+                            len_record = len_record+fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));    
+                        }
+                        else{
+                            P_out[0] = PP1.x;  P_out[1] = PP1.y;  P_out[2] = PP1.z;
+                        }
+    
+                        if (curB_flag[0]){
+                            twist = twist+dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI \
+                            *fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));
+                        }    
+                    }
+                    else{ // ignore
+                        P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
+                    }
+                }
+                PP1=PP2;
+                step_count=step_count+1;
+            }
+
+
+
+        }
+
         ncross_dir3=make_float3(ncross_dir[0],ncross_dir[1],ncross_dir[2]);
         B_Pstart = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true);
 
@@ -433,67 +544,7 @@ __device__ void TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         else {tol_this=TOL*powf(fabsf(dot3(B_Pstart,ncross_dir3)),3);}
         
         tol_this=tol_this*tol_coef;
-        while ( (flag_this==0) & (len_record<len_lim)){
-            // trace Bline step by step
-            P_tmp = RKF45(Bx,By,Bz,BshapeN3,PP1, s_len*direction);
-            PP2 = make_float3(P_tmp.x,P_tmp.y,P_tmp.z);
-            scale = powf(tol_this/P_tmp.w/11.09,0.2);
-            if (scale<0.618){s_len = s_len*0.618;// redo RK45 when the error is too large
-                continue; }
-            s_len = s_len*scale;
-            if (s_len>100.)  {s_len=100.;} // upper limit of the step size
-            if (s_len<1./10.){s_len=1./10.;} //lower limit of the step size
-            //len_record = len_record+s_len;
-            len_record = len_record+lenVec3(PP1-PP2);
-            if (curB_flag[0]){
-                cur_P1 = Interp3dxyzn(curB_x,curB_y,curB_z,BshapeN3,PP1,false);
-                B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,false);
-                twist = twist+dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI*lenVec3(PP1-PP2);
-            }
-
-            flag_this = checkFlag(BshapeN3,PP2);  // check status
-            if (flag_this>0){ // out of box
-                len_record = len_record-lenVec3(PP1-PP2); // reverse step len
-                if (curB_flag[0]){// reverse twist
-                    twist = twist-dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI*lenVec3(PP1-PP2);
-                }
-                if (flag_this<=6){ // step out from surface
-                    // linear estimation
-                    dim_out = int((flag_this-1)/2);
-                    p1 = selectFloat3xyz(PP1,dim_out);
-                    p2 = selectFloat3xyz(PP2,dim_out);
-
-                    if (fabsf(p1-p2)>1e-3){
-                        if (flag_this%2==1){p_mid=0;} // step out from min surface
-                        else{p_mid=float(selectInt3xyz(BshapeN3,dim_out));} // step out from max surface
-                        B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true);
-                        B_P2 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP2,true);
-                        if (fabsf(selectFloat3xyz(B_P1,dim_out))<0.2 | fabsf(selectFloat3xyz(B_P2,dim_out))<0.2){
-                                P_out[0] = (PP1.x* (p2-p_mid) + PP2.x* (p_mid-p1))/(p2-p1);
-                                P_out[1] = (PP1.y* (p2-p_mid) + PP2.y* (p_mid-p1))/(p2-p1);
-                                P_out[2] = (PP1.z* (p2-p_mid) + PP2.z* (p_mid-p1))/(p2-p1); }
-                        else{// rk4 to the surface
-                            PP2 = RK4_boundary(Bx,By,Bz,BshapeN3,PP1,(p_mid-p1),dim_out);
-                            P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
-                        }
-                        len_record = len_record+fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));    
-                    }
-                    else{
-                        P_out[0] = PP1.x;  P_out[1] = PP1.y;  P_out[2] = PP1.z;
-                    }
-
-                    if (curB_flag[0]){
-                        twist = twist+dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI \
-                        *fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));
-                    }    
-                }
-                else{ // ignore
-                    P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
-                }
-            }
-            PP1=PP2;
-            step_count=step_count+1;
-        }
+        
         //printf("[%d][%f]:%f  :%f  :%f\n",step_count,P1[0],P1[1],P1[2]);
         len_this[0] = len_record;
         twist_this[0] = twist;
