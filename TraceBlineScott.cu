@@ -363,7 +363,7 @@ inline __device__ float RKF45_Scott(float *Bx,float *By,float *Bz,\
     k5 = s_len*f_scott(Bx,By,Bz,BshapeN3,vec_in+ (a51*k1+ a52*k2+ a53*k3+ a54*k4));
     k6 = s_len*f_scott(Bx,By,Bz,BshapeN3,vec_in+ (a61*k1+ a62*k2+ a63*k3+ a64*k4+ a65*k5));
     
-    vec_out = vec_in+ (b1*k1  +b3*k3+  b4*k4  +b5*k5  +b6*k6); //b2=0
+    vec_out[0] = vec_in+ (b1*k1  +b3*k3+  b4*k4  +b5*k5  +b6*k6); //b2=0
     //P_b = P0+ (bb1*k1 +bb2*k2 +bb3*k3+ bb4*k4 +bb5*k5);
 
     //err_step = lenVec3(P_a-P_b);
@@ -387,29 +387,6 @@ inline __device__ float selectInt3xyz(int3 a, int dim){
         case 1  : res = a.y;  break;
         case 2  : res = a.z;  break;}
     return res;
-}
-
-inline __device__ float3 RK4_boundary(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len,int b_dim){
-    float B0_k1,B0_k2,B0_k3,B0_k4;
-    float3 Bk1,Bk2,Bk3,Bk4,P_end,k1,k2,k3,k4;
-    // k1
-    Bk1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0,true);
-    B0_k1 = selectFloat3xyz(Bk1,b_dim);
-    k1 = Bk1/B0_k1;
-    // k2
-    Bk2 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+s_len*k1/2.,true);
-    B0_k2 = selectFloat3xyz(Bk2,b_dim);
-    k2 = Bk2/B0_k2;
-    // k3
-    Bk3  = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+s_len*k2/2.,true);
-    B0_k3 = selectFloat3xyz(Bk3,b_dim);
-    k3 = Bk3/B0_k3;
-    // k4
-    Bk4 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+s_len*k3,true);
-    B0_k4 = selectFloat3xyz(Bk4,b_dim);
-    k4 = Bk4/B0_k4;
-    P_end = P0 + (1./6.)* s_len*( k1 + 2.0*k2 + 2.0*k3 + k4);
-    return P_end;
 }
 
 inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur){
@@ -438,20 +415,22 @@ inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur){
 
 __device__ void TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     float *curB_x, float *curB_y,  float *curB_z,double *twist_this,bool *curB_flag,\
-    float *P_0, float *P_out, float *ncross_dir, float s_len, int *flag, double *len_this,\
-    float direction,float tol_coef){
+    float *P_0, float *ncross_dir, float s_len, int *flag_start, int *flag_end,\
+    float *q_0, float *q_perp, double *len_this, float direction, float tol_coef){
         unsigned long step_count = 0;
         //unsigned long step_lim = (MAX_STEP_RATIO*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
         double len_lim = (MAX_STEP_RATIO*1.0*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
-        float q0, q_perp0;
+        float err_step;
         double len_record=0;
         double twist=0;
-        float3 PP1,PP2; // point coordinate
+        float3 PP1,PP2,PP_start,PP_end; // point coordinate
         float3 B_P1,B_P2,B_Pstart, ncross_dir3,cur_P1;
+        float3 Bv_start,Bv_end;
         float3 Norm_B_Pstart;
         float3 v0,vs,ve,u0,us,ue;
         int dir_sign;
-        float9 vec9,vec9_0,vec9_1,vec9_s,vec9_e;
+        float9 vec_tmp,vec_a,vec_b,vec_s,vec_e; // vec_a vec_b step forward 
+        // vec_s vec_e start end
 
         float scale,tol_this,dL;
         float p_mid, p1,p2; // for linear interpolation
@@ -460,6 +439,16 @@ __device__ void TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         float4 P_tmp;
         bool z0flag;
 
+        float BN_s,BN_e;
+
+        // tol settings
+        if (fabsf(dot3(B_Pstart,ncross_dir3))<=0.05){tol_this=TOL/8e3;}
+        else {tol_this=TOL*powf(fabsf(dot3(B_Pstart,ncross_dir3)),3);}
+        tol_this=tol_this*tol_coef;
+
+
+        PP1=make_float3(P_0[0],P_0[1],P_0[2]);
+        if(PP1.z<-1e-8){return void();} // quit if under 0
 
         B_Pstart = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true); // b0
 
@@ -471,80 +460,71 @@ __device__ void TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         u0.z = B_Pstart.x * v0.y - B_Pstart.y * v0.x
         u0 = normalize(u0) 
 
-        flag_this = 0;  // start from flag=0
-        PP1=make_float3(P_0[0],P_0[1],P_0[2]);
-
-        if(PP1.z<0){return void();} // quit if under 0
-
         z0flag = (PP1.z)<1e-6;
         len_record=0;
         // forward(+1) and backward(-1) direction
         for(dir_sign=-1,dir_sign<2,dir_sign+=2){
-            vec9.x=PP1;
-            vec9.y=u0;
-            vec9.z=v0;
+            vec_a.x=PP1;
+            vec_a.y=u0;
+            vec_a.z=v0;
 
             if(z0flag){ // start from z0
                 if(B_Pstart.z*dir_sign < 0){ // downward    
-                    if(dir_sign==-1) {vec9_s=vec9; rbs=1;}
-                    else             {vec9_e=vec9; rbe=1;}
+                    if(dir_sign==-1) {vec_s=vec_a; flag_start=1;}
+                    else             {vec_e=vec_a; flag_end=1;}
                     continue;
                 }
             }   
             
             dL = 0;
             dt = INIT_DT*dir_sign;
+            flag_this = 0;  // start from flag=0
             while ( (flag_this==0) & (len_record<len_lim) & (step_count<N_STEP_LIM)){
-                // trace Bline step by step
-                len_record = len_record+dL;
                 
-                P_tmp = RKF45(Bx,By,Bz,BshapeN3,PP1, s_len*direction);
-                PP2 = make_float3(P_tmp.x,P_tmp.y,P_tmp.z);
-                scale = powf(tol_this/P_tmp.w/11.09,0.2);
-                //out
-                
+                // forward one step and return error
+                err_step = RKF45_Scott(Bx, By, Bz, BshapeN3, vec_1,  &vec_tmp, s_len);
+
+                vec_2=vec_tmp;
+                scale = powf(tol_this/err_step/11.09,0.2);
+                //out test
                 if (scale<0.618){s_len = s_len*0.618;// redo RK45 when the error is too large
                     continue; }
                 s_len = s_len*scale;
                 if (s_len>100.)  {s_len=100.;} // upper limit of the step size
                 if (s_len<1./10.){s_len=1./10.;} //lower limit of the step size
                 //len_record = len_record+s_len;
-                len_record = len_record+lenVec3(PP1-PP2);
+                dL = lenVec3(vec_2.x-vec_1.x);
+                len_record = len_record+dL;
                 if (curB_flag[0]){
-                    cur_P1 = Interp3dxyzn(curB_x,curB_y,curB_z,BshapeN3,PP1,false);
-                    B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,false);
-                    twist = twist+dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI*lenVec3(PP1-PP2);
+                    cur_P1 = Interp3dxyzn(curB_x,curB_y,curB_z,BshapeN3,vec_2.x,false);
+                    B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,vec_2.x,false);
+                    twist = twist+dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI*dL;
                 }
     
-                flag_this = checkFlag(BshapeN3,PP2);  // check status
+                flag_this = checkFlag(BshapeN3,vec_2.x);  // check status
                 if (flag_this>0){ // out of box
-                    len_record = len_record-lenVec3(PP1-PP2); // reverse step len
+                    len_record = len_record-dL; // reverse step len
                     if (curB_flag[0]){// reverse twist
-                        twist = twist-dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI*lenVec3(PP1-PP2);
+                        twist = twist-dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI*dL;
                     }
                     if (flag_this<=6){ // step out from surface
+                        
                         // linear estimation
                         dim_out = int((flag_this-1)/2);
-                        p1 = selectFloat3xyz(PP1,dim_out);
-                        p2 = selectFloat3xyz(PP2,dim_out);
+                        p1 = selectFloat3xyz(vec_1.x,dim_out);
+                        p2 = selectFloat3xyz(vec_2.x,dim_out);
     
                         if (fabsf(p1-p2)>1e-3){
-                            if (flag_this%2==1){p_mid=0;} // step out from min surface
-                            else{p_mid=float(selectInt3xyz(BshapeN3,dim_out));} // step out from max surface
-                            B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true);
-                            B_P2 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP2,true);
-                            if (fabsf(selectFloat3xyz(B_P1,dim_out))<0.2 | fabsf(selectFloat3xyz(B_P2,dim_out))<0.2){
-                                    P_out[0] = (PP1.x* (p2-p_mid) + PP2.x* (p_mid-p1))/(p2-p1);
-                                    P_out[1] = (PP1.y* (p2-p_mid) + PP2.y* (p_mid-p1))/(p2-p1);
-                                    P_out[2] = (PP1.z* (p2-p_mid) + PP2.z* (p_mid-p1))/(p2-p1); }
-                            else{// rk4 to the surface
-                                PP2 = RK4_boundary(Bx,By,Bz,BshapeN3,PP1,(p_mid-p1),dim_out);
-                                P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
-                            }
+                            if (flag_this%2==1) {p_mid=0;} // step out from min surface
+                            else                {p_mid=float(selectInt3xyz(BshapeN3,dim_out));} // step out from max surface
+                            
+                            if(dir_sign==-1) {vec_s=(vec_1* (p2-p_mid) + vec_2* (p_mid-p1))/(p2-p1); flag_start=flag_this;}
+                            else             {vec_e=(vec_1* (p2-p_mid) + vec_2* (p_mid-p1))/(p2-p1); flag_end  =flag_this;}
                             len_record = len_record+fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));    
                         }
                         else{
-                            P_out[0] = PP1.x;  P_out[1] = PP1.y;  P_out[2] = PP1.z;
+                            if(dir_sign==-1) {vec_s=vec_1; flag_start=flag_this;}
+                            else             {vec_e=vec_1; flag_end=flag_this;  }
                         }
     
                         if (curB_flag[0]){
@@ -552,26 +532,56 @@ __device__ void TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
                             *fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));
                         }    
                     }
-                    else{ // ignore
-                        P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
+                    else{ // not important situation
+                        if(dir_sign==-1) {vec_s=vec_1; flag_start=flag_this;}
+                        else             {vec_e=vec_1; flag_end=flag_this;  }
+                        q_0=0;
+                        q_perp=0;
+                        return void();
                     }
                 }
-                PP1=PP2;
+                vec_1=vec_2;
                 step_count=step_count+1;
             }
-
-
-
         }
 
         ncross_dir3=make_float3(ncross_dir[0],ncross_dir[1],ncross_dir[2]);
-        B_Pstart = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true);
+        
+        Nb0 = length(B_Pstart);
 
-        if (fabsf(dot3(B_Pstart,ncross_dir3))<=0.05){tol_this=TOL/8e3;}
-        else {tol_this=TOL*powf(fabsf(dot3(B_Pstart,ncross_dir3)),3);}
+        Bv_s = Interp3dxyzn(Bx,By,Bz,BshapeN3,vec_s.x,false);
+        dim_start = int((flag_start-1)/2);
+        BN_s = selectFloat3xyz(Bv_s,dim_start);
+        us = vec_s.y;
+        v_s = vec_s.z;
         
-        tol_this=tol_this*tol_coef;
-        
+        Bv_e = Interp3dxyzn(Bx,By,Bz,BshapeN3,vec_e.x,false);
+        dim_end = int((flag_start-1)/2);
+        BN_e = selectFloat3xyz(Bv_end,dim_end);
+        ue = vec_e.y;
+        ve = vec_e.z;
+    
+        us1=us-selectFloat3xyz(us,dim_start)/selectFloat3xyz(Bv_s,dim_start)*BN_s;
+        vs1=vs-selectFloat3xyz(vs,dim_start)/selectFloat3xyz(Bv_s,dim_start)*BN_s;
+        ue1=ue-selectFloat3xyz(ue,dim_end)/selectFloat3xyz(Bv_e,dim_end)*BN_e;
+        ve1=ve-selectFloat3xyz(ve,dim_end)/selectFloat3xyz(Bv_e,dim_end)*BN_e;
+
+
+        q_0[0] =abs( dot(ue1,ue1)*dot(vs1,vs1)       \
+            +    dot(us1,us1)*dot(ve1,ve1)       \
+            - 2.0*dot(ue1,ve1)*dot(us1,vs1))/    \
+                (abs( (Nb0*Nb0) / (BN_s*BN_e)));
+
+        ue1=ue-dot(ue,Bv_e)/length(Bv_e)*(Bv_e/length(Bv_e));
+        ve1=ve-dot(ve,Bv_e)/length(Bv_e)*(Bv_e/length(Bv_e));
+        us1=us-dot(us,Bv_s)/length(Bv_s)*(Bv_s/length(Bv_s));
+        vs1=vs-dot(vs,Bv_s)/length(Bv_s)*(Bv_s/length(Bv_s));
+
+        q_perp[0] =abs( dot(ue1,ue1)*dot(vs1,vs1)   \
+                +     dot(us1,us1)*dot(ve1,ve1)   \
+                - 2.0*dot(ue1,ve1)*dot(us1,vs1))/ \
+            ( (Nb0*Nb0) / (length(Bv_e)*length(Bv_s)));
+
         //printf("[%d][%f]:%f  :%f  :%f\n",step_count,P1[0],P1[1],P1[2]);
         len_this[0] = len_record;
         twist_this[0] = twist;
@@ -587,6 +597,7 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
     float *B_this_x,float *B_this_y, float *B_this_z, int *B_flag,\
     float *B_start_x,float *B_start_y, float *B_start_z,\
     float *B_end_x,float *B_end_y, float *B_end_z,\
+    float *q_0_arr,float *q_perp_arr,\
     float *s_len,unsigned long long *N,double *LineLen,float *tol_coef){
         
         unsigned long long x = blockIdx.x * blockDim.x + threadIdx.x;
