@@ -436,7 +436,7 @@ __device__ float9 TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
                         p1 = selectFloat3xyz(vec_a.x,dim_out);
                         p2 = selectFloat3xyz(vec_b.x,dim_out);
     
-                        if (fabsf(p1-p2)>1e-3){
+                        if (fabsf(p1-p2)>0){
                             if (flag_this%2==1) {p_mid=0;} // step out from min surface
                             else                {p_mid=float(selectInt3xyz(BshapeN3,dim_out));} // step out from max surface
                             
@@ -515,8 +515,7 @@ __device__ float9 TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         return posi_vec;
     }
 
-
-__global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
+__global__ void TraceAllBlineScott(float *Bx,float *By,float *Bz,int *BshapeN,\
     float *curB_x, float *curB_y,  float *curB_z,double *twist,bool *curB_flag,\
     float *inp_x,float *inp_y, float *inp_z, float *inp_cross_dir,\
     float *start_x,float *start_y, float *start_z, int *flag_start_arr,\
