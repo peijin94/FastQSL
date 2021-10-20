@@ -366,7 +366,7 @@ __device__ float9 TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         if(PP1.z<-1e-8){return posi_vec;} // quit if under 0
 
         B_Pstart = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true); // b0
-        Nb0 = length(B_Pstart);
+        Nb0 = length(Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,false));
         // tol settings
         if (fabsf(dot3(B_Pstart,ncross_dir3))<=0.05){tol_this=TOL/8e3;}
         else {tol_this=TOL*powf(fabsf(dot3(B_Pstart,ncross_dir3)),3);}
@@ -481,10 +481,12 @@ __device__ float9 TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         ue = vec_e.y;
         ve = vec_e.z;
     
-        us1=us-selectFloat3xyz(us,dim_start)/selectFloat3xyz(Bv_s,dim_start)*BN_s;
-        vs1=vs-selectFloat3xyz(vs,dim_start)/selectFloat3xyz(Bv_s,dim_start)*BN_s;
-        ue1=ue-selectFloat3xyz(ue,dim_end)/selectFloat3xyz(Bv_e,dim_end)*BN_e;
-        ve1=ve-selectFloat3xyz(ve,dim_end)/selectFloat3xyz(Bv_e,dim_end)*BN_e;
+        //printf("%d, [%f,%f,%f] , [%f], [%f,%f,%f]\n",dim_start,Bv_s.x,Bv_s.y,Bv_s.z,BN_s, vec_s.x.x,vec_s.x.y,vec_s.x.z);
+        
+        us1=us-selectFloat3xyz(us,dim_start)/selectFloat3xyz(Bv_s,dim_start)*Bv_s;
+        vs1=vs-selectFloat3xyz(vs,dim_start)/selectFloat3xyz(Bv_s,dim_start)*Bv_s;
+        ue1=ue-selectFloat3xyz(ue,dim_end)/selectFloat3xyz(Bv_e,dim_end)*Bv_e;
+        ve1=ve-selectFloat3xyz(ve,dim_end)/selectFloat3xyz(Bv_e,dim_end)*Bv_e;
 
 
         q_0[0] =abs( dot(ue1,ue1)*dot(vs1,vs1)       \
@@ -506,9 +508,9 @@ __device__ float9 TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         len_this[0] = len_record;
         twist_this[0] = twist;
 
-        posi_vec.x = vec_s.x;
+        posi_vec.x = vec_s.x; // start
         posi_vec.y = PP1;
-        posi_vec.z = vec_e.x;
+        posi_vec.z = vec_e.x; // end
 
         return posi_vec;
     }
