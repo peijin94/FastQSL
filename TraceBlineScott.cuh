@@ -69,11 +69,10 @@ __global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res
 __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
     float *curB_x, float *curB_y,  float *curB_z,double *twist,bool *curB_flag,\
     float *inp_x,float *inp_y, float *inp_z, float *inp_cross_dir,\
-    float *start_x,float *start_y, float *start_z, int *flag_start,\
-    float *end_x,  float *end_y,   float *end_z,   int *flag_end,\
-    float *B_this_x,float *B_this_y, float *B_this_z, int *B_flag,\
-    float *B_start_x,float *B_start_y, float *B_start_z,\
-    float *B_end_x,float *B_end_y, float *B_end_z,\
+    float *start_x,float *start_y, float *start_z, int *flag_start_arr,\
+    float *end_x,  float *end_y,   float *end_z,   int *flag_end_arr,\
+    float *B_this_x,float *B_this_y, float *B_this_z,\
+    float *q_0_arr,float *q_perp_arr,\
     float *s_len,unsigned long long *N,double *LineLen,float *tol_coef);
 
 __global__ void TestMem(int *flag_out);

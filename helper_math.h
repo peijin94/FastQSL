@@ -1533,7 +1533,7 @@ inline __host__ __device__ float9 operator+(float9 a, float b)
 
 inline __host__ __device__ float9 operator-(float9 a, float b)
 {
-    return make_float9(a.x - b, a.y - b, a.z - z);
+    return make_float9(a.x - b, a.y - b, a.z - b);
 }
 
 inline __host__ __device__ float9 operator*(float9 a, float b)
