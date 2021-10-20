@@ -33,86 +33,6 @@ inline __device__ float3 divide3(float3 a, float b)
 inline __device__ float3 normalize3(float4 a)
 {  return make_float3(a.x/a.w,  a.y/a.w,  a.z/a.w);}
 
-typedef struct float9{
-    float3 x;
-    float3 y;
-    float3 z;
-}float9;
-
-inline __host__ __device__ float9 make_float9(float3 a, float3 a, float3 a)
-{
-    float9 res;
-    res.x = a;
-    res.y = b;
-    res.z = c;
-    return res;
-}
-
-// + - x / for float9 and float9
-inline __host__ __device__ float9 operator+(float9 a, float9 b)
-{
-    return make_float9(a.x + b.x, a.y + b.y, a.z + b.z);
-}
-
-inline __host__ __device__ float9 operator-(float9 a, float9 b)
-{
-    return make_float9(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-inline __host__ __device__ float9 operator*(float9 a, float9 b)
-{
-    return make_float9(a.x * b.x, a.y * b.y, a.z * b.z);
-}
-
-inline __host__ __device__ float9 operator/(float9 a, float9 b)
-{
-    return make_float9(a.x / b.x, a.y / b.y, a.z / b.z);
-}
-
-// + - x / for float and float9
-inline __host__ __device__ float9 operator+(float a, float9 b)
-{
-    return make_float9(a + b.x, a + b.y, a + b.z);
-}
-
-inline __host__ __device__ float9 operator-(float a, float9 b)
-{
-    return make_float9(a - b.x, a - b.y, a - b.z);
-}
-
-inline __host__ __device__ float9 operator*(float a, float9 b)
-{
-    return make_float9(a * b.x, a * b.y, a * b.z);
-}
-
-inline __host__ __device__ float9 operator/(float a, float9 b)
-{
-    return make_float9(a / b.x, a / b.y, a / b.z);
-}
-
-
-// + - x / for float and float9
-inline __host__ __device__ float9 operator+(float9 a, float b)
-{
-    return make_float9(a.x + b, a.y + b, a.z + b);
-}
-
-inline __host__ __device__ float9 operator-(float9 a, float b)
-{
-    return make_float9(a.x - b, a.y - b, a.z - z);
-}
-
-inline __host__ __device__ float9 operator*(float9 a, float b)
-{
-    return make_float9(a.x * b, a.y * b, a.z * b);
-}
-
-inline __host__ __device__ float9 operator/(float9 a, float b)
-{
-    return make_float9(a.x / b, a.y / b, a.z / b);
-}
-
-
 __forceinline__ __device__ float get_Idx3d(float *Arr,int3 AShapeN3,int Idx0,int Idx1,int Idx2){
     //return Arr[Idx0* AShapeN[1]*AShapeN[2]  +  Idx1* AShapeN[2]  +  Idx2];
     return Arr[Idx2* AShapeN3.y*AShapeN3.x  +  Idx1*AShapeN3.x  +  Idx0];
@@ -290,19 +210,19 @@ inline __device__ float9 grad_unit_vec_B(float *Arr_x,float *Arr_y,float *Arr_z,
         vp1=inPoint_this; vp2=inPoint_this; vp1.x+=0.001; vp2.x+=0.001;
         BN1 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vp1,true);
         BN2 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vp2,true);
-        res.x = (BN2-BN1)/0.002
+        res.x = (BN2-BN1)/0.002;
 
         vp1=inPoint_this; vp2=inPoint_this; vp1.y+=0.001; vp2.y+=0.001;
         BN1 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vp1,true);
         BN2 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vp2,true);
-        res.y = (BN2-BN1)/0.002
+        res.y = (BN2-BN1)/0.002;
 
         vp1=inPoint_this; vp2=inPoint_this; vp1.z+=0.001; vp2.z+=0.001;
         BN1 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vp1,true);
         BN2 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vp2,true);
-        res.z = (BN2-BN1)/0.002
+        res.z = (BN2-BN1)/0.002;
 
-        return res
+        return res;
 }
     
 
@@ -313,17 +233,17 @@ inline __device__ float9 f_scott( float *Arr_x,float *Arr_y,float *Arr_z,\
         float3 BN1;
         float9 Jac_B,vec_out;
         BN1 = Interp3dxyzn(Arr_x,Arr_y,Arr_z,AShapeN3, vec_in.x ,true);
-        Jac_B = grad_unit_vec_B(Arr_x,Arr_y,Arr_z,AShapeN3, vec_in.x)
+        Jac_B = grad_unit_vec_B(Arr_x,Arr_y,Arr_z,AShapeN3, vec_in.x);
 
         vec_out.x = BN1;
 
-        vec_out.y.x = dot(vec_in.y, make_float3(Jac_B.x.x,Jac_B.y.x,Jac_B.z.x);
-        vec_out.y.y = dot(vec_in.y, make_float3(Jac_B.x.y,Jac_B.y.y,Jac_B.z.y);
-        vec_out.y.z = dot(vec_in.y, make_float3(Jac_B.x.z,Jac_B.y.z,Jac_B.z.z); 
+        vec_out.y.x = dot(vec_in.y, make_float3(Jac_B.x.x,Jac_B.y.x,Jac_B.z.x));
+        vec_out.y.y = dot(vec_in.y, make_float3(Jac_B.x.y,Jac_B.y.y,Jac_B.z.y));
+        vec_out.y.z = dot(vec_in.y, make_float3(Jac_B.x.z,Jac_B.y.z,Jac_B.z.z)); 
 
-        vec_out.z.x = dot(vec_in.z, make_float3(Jac_B.x.x,Jac_B.y.x,Jac_B.z.x);
-        vec_out.z.y = dot(vec_in.z, make_float3(Jac_B.x.y,Jac_B.y.y,Jac_B.z.y);
-        vec_out.z.z = dot(vec_in.z, make_float3(Jac_B.x.z,Jac_B.y.z,Jac_B.z.z); 
+        vec_out.z.x = dot(vec_in.z, make_float3(Jac_B.x.x,Jac_B.y.x,Jac_B.z.x));
+        vec_out.z.y = dot(vec_in.z, make_float3(Jac_B.x.y,Jac_B.y.y,Jac_B.z.y));
+        vec_out.z.z = dot(vec_in.z, make_float3(Jac_B.x.z,Jac_B.y.z,Jac_B.z.z)); 
 
         return vec_out;
 }
@@ -413,10 +333,10 @@ inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur){
     return flag_res;
 }
 
-__device__ void TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+__device__ float9 TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     float *curB_x, float *curB_y,  float *curB_z,double *twist_this,bool *curB_flag,\
     float *P_0, float *ncross_dir, float s_len, int *flag_start, int *flag_end,\
-    float *q_0, float *q_perp, double *len_this, float direction, float tol_coef){
+    float *q_0, float *q_perp, double *len_this, float tol_coef){
         unsigned long step_count = 0;
         //unsigned long step_lim = (MAX_STEP_RATIO*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
         double len_lim = (MAX_STEP_RATIO*1.0*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
@@ -439,6 +359,8 @@ __device__ void TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         float4 P_tmp;
         bool z0flag;
 
+        float9 posi_vec;
+
         float BN_s,BN_e;
 
         // tol settings
@@ -452,13 +374,13 @@ __device__ void TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
 
         B_Pstart = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true); // b0
 
-        v0 = make_float3(B_Pstart.y,-B_Pstart.x,0)
-        v0 = normalize( v0-dot(v0,B_Pstart)*B_Pstart )
+        v0 = make_float3(B_Pstart.y,-B_Pstart.x,0);
+        v0 = normalize( v0-dot(v0,B_Pstart)*B_Pstart );
 
-        u0.x = B_Pstart.y * v0.z - B_Pstart.z * v0.y 
-        u0.y = B_Pstart.z * v0.x - B_Pstart.x * v0.z 
-        u0.z = B_Pstart.x * v0.y - B_Pstart.y * v0.x
-        u0 = normalize(u0) 
+        u0.x = B_Pstart.y * v0.z - B_Pstart.z * v0.y;
+        u0.y = B_Pstart.z * v0.x - B_Pstart.x * v0.z;
+        u0.z = B_Pstart.x * v0.y - B_Pstart.y * v0.x;
+        u0 = normalize(u0) ;
 
         z0flag = (PP1.z)<1e-6;
         len_record=0;
@@ -586,17 +508,20 @@ __device__ void TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         len_this[0] = len_record;
         twist_this[0] = twist;
         flag[0] = flag_this;
+
+        posi_vec.x = vec_s.x;
+        posi_vec.y = PP1;
+        posi_vec.z = vec_e.x;
+
+        return posi_vec;
     }
 
 
 __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
     float *curB_x, float *curB_y,  float *curB_z,double *twist,bool *curB_flag,\
     float *inp_x,float *inp_y, float *inp_z, float *inp_cross_dir,\
-    float *start_x,float *start_y, float *start_z, int *flag_start,\
-    float *end_x,  float *end_y,   float *end_z,   int *flag_end,\
-    float *B_this_x,float *B_this_y, float *B_this_z, int *B_flag,\
-    float *B_start_x,float *B_start_y, float *B_start_z,\
-    float *B_end_x,float *B_end_y, float *B_end_z,\
+    float *start_x,float *start_y, float *start_z, int *flag_start_arr,\
+    float *end_x,  float *end_y,   float *end_z,   int *flag_end_arr,\
     float *q_0_arr,float *q_perp_arr,\
     float *s_len,unsigned long long *N,double *LineLen,float *tol_coef){
         
@@ -614,6 +539,10 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
         float *P_out = new float[3];
         int *flag_cur = new int[1];
         double *len_this = new double[1];
+        float9 posi_vec;
+        float q_0_this, q_perp_this;
+
+        int flag_start,flag_end;
 
         for (line_idx=0; line_idx<works_per_thread; line_idx++){
             //Bline_ID = works_per_thread*idx_cur+line_idx;
@@ -625,40 +554,24 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
                 P_0[1] = inp_y[Bline_ID];
                 P_0[2] = inp_z[Bline_ID]; 
                 twist_this[0]=0;
-                TraceBlineScott(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
-                    P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,1.0,tol_coef[0]); // forward and backward
-                B_end_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
-                B_end_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
-                B_end_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
-                end_x[Bline_ID] = P_out[0];
-                end_y[Bline_ID] = P_out[1];
-                end_z[Bline_ID] = P_out[2];
-                flag_end[Bline_ID] = flag_cur[0];
+
+                posi_vec = TraceBlineScott(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+                    P_0, inp_cross_dir,s_len[0],&flag_start,&flag_end,\
+                    &q_0_this, &q_perp_this, len_this, tol_coef);
+            
+                start_x[Bline_ID] = posi_vec.x.x;
+                start_y[Bline_ID] = posi_vec.x.y;
+                start_z[Bline_ID] = posi_vec.x.z;
+
+                end_x[Bline_ID] = posi_vec.z.x;
+                end_y[Bline_ID] = posi_vec.z.y;
+                end_z[Bline_ID] = posi_vec.z.z;
+                flag_start_arr[Bline_ID] = flag_start;
+                flag_end_arr[Bline_ID] = flag_end;
                 LineLen[Bline_ID] = len_this[0];
                 if (curB_flag[0]){twist[Bline_ID]=twist_this[0];}
-                //backward
-                P_0[0] = inp_x[Bline_ID];
-                P_0[1] = inp_y[Bline_ID];
-                P_0[2] = inp_z[Bline_ID]; 
-                twist_this[0]=0;
-                TraceBlineAdap(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
-                    P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,-1.0,tol_coef[0]); // forward and backward
-                B_start_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
-                B_start_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
-                B_start_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
-                start_x[Bline_ID] = P_out[0];
-                start_y[Bline_ID] = P_out[1];
-                start_z[Bline_ID] = P_out[2];
-                flag_start[Bline_ID] = flag_cur[0];
-                LineLen[Bline_ID] = LineLen[Bline_ID] + len_this[0];
-                if (curB_flag[0]){twist[Bline_ID]=twist[Bline_ID]+twist_this[0];}
-                //printf("[%d], %f, %f, %f\n", flag_out[idx_cur] ,out_x[idx_cur],out_y[idx_cur],out_z[idx_cur] );
-                
-                // record B in plane
-                B_this_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_0[0],P_0[1],P_0[2]);
-                B_this_y[Bline_ID] = Interp3d(By,BshapeN3,P_0[0],P_0[1],P_0[2]);
-                B_this_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_0[0],P_0[1],P_0[2]);
 
+                
                 if (fabsf(B_this_x[Bline_ID]*inp_cross_dir[0]+B_this_y[Bline_ID]*inp_cross_dir[1]+B_this_z[Bline_ID]*inp_cross_dir[2])*100.\
                   <lenVec3xyz(B_this_x[Bline_ID],B_this_y[Bline_ID],B_this_z[Bline_ID])){
                     B_flag[Bline_ID] = 1;}

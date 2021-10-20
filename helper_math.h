@@ -1466,4 +1466,86 @@ inline __device__ __host__ float4 smoothstep(float4 a, float4 b, float4 x)
     return (y*y*(make_float4(3.0f) - (make_float4(2.0f)*y)));
 }
 
+
+typedef struct float9{
+    float3 x;
+    float3 y;
+    float3 z;
+}float9;
+
+inline __host__ __device__ float9 make_float9(float3 a, float3 b, float3 c)
+{
+    float9 res;
+    res.x = a;
+    res.y = b;
+    res.z = c;
+    return res;
+}
+
+// + - x / for float9 and float9
+inline __host__ __device__ float9 operator+(float9 a, float9 b)
+{
+    return make_float9(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+inline __host__ __device__ float9 operator-(float9 a, float9 b)
+{
+    return make_float9(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+inline __host__ __device__ float9 operator*(float9 a, float9 b)
+{
+    return make_float9(a.x * b.x, a.y * b.y, a.z * b.z);
+}
+
+inline __host__ __device__ float9 operator/(float9 a, float9 b)
+{
+    return make_float9(a.x / b.x, a.y / b.y, a.z / b.z);
+}
+
+// + - x / for float and float9
+inline __host__ __device__ float9 operator+(float a, float9 b)
+{
+    return make_float9(a + b.x, a + b.y, a + b.z);
+}
+
+inline __host__ __device__ float9 operator-(float a, float9 b)
+{
+    return make_float9(a - b.x, a - b.y, a - b.z);
+}
+
+inline __host__ __device__ float9 operator*(float a, float9 b)
+{
+    return make_float9(a * b.x, a * b.y, a * b.z);
+}
+
+inline __host__ __device__ float9 operator/(float a, float9 b)
+{
+    return make_float9(a / b.x, a / b.y, a / b.z);
+}
+
+
+// + - x / for float and float9
+inline __host__ __device__ float9 operator+(float9 a, float b)
+{
+    return make_float9(a.x + b, a.y + b, a.z + b);
+}
+
+inline __host__ __device__ float9 operator-(float9 a, float b)
+{
+    return make_float9(a.x - b, a.y - b, a.z - z);
+}
+
+inline __host__ __device__ float9 operator*(float9 a, float b)
+{
+    return make_float9(a.x * b, a.y * b, a.z * b);
+}
+
+inline __host__ __device__ float9 operator/(float9 a, float b)
+{
+    return make_float9(a.x / b, a.y / b, a.z / b);
+}
+
+
+
 #endif
