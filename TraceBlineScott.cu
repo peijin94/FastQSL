@@ -392,8 +392,8 @@ __device__ float9 TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
 
             if(z0flag){ // start from z0
                 if(B_Pstart.z*dir_sign < 0){ // downward    
-                    if(dir_sign==-1) {vec_s=vec_a; flag_start[0]=1;}
-                    else             {vec_e=vec_a; flag_end[0]=1;}
+                    if(dir_sign==-1) {vec_s=vec_a; flag_start[0]=5;}
+                    else             {vec_e=vec_a; flag_end[0]=5;}
                     continue;
                 }
             }   
@@ -481,7 +481,7 @@ __device__ float9 TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         ue = vec_e.y;
         ve = vec_e.z;
     
-        //printf("%d, [%f,%f,%f] , [%f], [%f,%f,%f]\n",dim_start,Bv_s.x,Bv_s.y,Bv_s.z,BN_s, vec_s.x.x,vec_s.x.y,vec_s.x.z);
+        //printf("%d, [%f,%f,%f] , [%f], [%f,%f,%f] %d \n",dim_start,Bv_s.x,Bv_s.y,Bv_s.z,BN_s, vec_s.x.x,vec_s.x.y,vec_s.x.z,flag_start[0]);
         
         us1=us-selectFloat3xyz(us,dim_start)/selectFloat3xyz(Bv_s,dim_start)*Bv_s;
         vs1=vs-selectFloat3xyz(vs,dim_start)/selectFloat3xyz(Bv_s,dim_start)*Bv_s;
