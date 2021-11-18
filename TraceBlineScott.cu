@@ -368,11 +368,14 @@ __device__ float9 TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         B_Pstart = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true); // b0
         Nb0 = length(Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,false));
         // tol settings
-        if (fabsf(dot3(B_Pstart,ncross_dir3))<=0.05){tol_this=TOL/8e3;}
-        else {tol_this=TOL*powf(fabsf(dot3(B_Pstart,ncross_dir3)),3);}
+
+        if(PP1.z<3){    
+            if (fabsf(dot3(B_Pstart,ncross_dir3))<=0.05){tol_this=TOL/8e3;}
+            else {tol_this=TOL*powf(fabsf(dot3(B_Pstart,ncross_dir3)),3);}
+        }
+        else{tol_this=TOL;}
+        
         tol_this=tol_this*tol_coef;
-
-
         
         v0 = make_float3(B_Pstart.y,-B_Pstart.x,0.0);
         v0 = normalize( v0-dot(v0,B_Pstart)*B_Pstart );
