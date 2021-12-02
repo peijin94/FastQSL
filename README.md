@@ -52,8 +52,8 @@ after this you should be able to see a '(fastqsl)' in your command line.
 ##### Install dependencies
 
 ```bash
-conda install numpy matplotlib pyvista scipy jupyterlab
-python -m pip install cupy-cuda102 ipython-autotime
+conda install numpy matplotlib pyvista scipy jupyterlab tqdm
+python -m pip install cupy-cuda102 ipython-autotime 
 ```
 
 ### Run
@@ -75,4 +75,4 @@ python -m jupyterlab --port 9999
 
 Normally it will pop up a browser automatically, if it didn't, you need to it manually by copy the url in the output of the command to a browser (Chrome recomended)
 
-~Enjoy~
+Enjoy.

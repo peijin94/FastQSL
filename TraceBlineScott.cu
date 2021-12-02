@@ -3,7 +3,7 @@
 *    @author Peijin Zhang
 *    The kernel of the Q-factor computation: tracing the magnetic field
 */
-#include <corecrt_math.h>
+//#include <corecrt_math.h>
 #include <math.h>
 #include <stdio.h>
 #include "helper_math.h"
