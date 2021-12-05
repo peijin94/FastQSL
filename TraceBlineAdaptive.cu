@@ -6,8 +6,8 @@
 //#include <corecrt_math.h>
 #include <math.h>
 #include <stdio.h>
-#include "helper_math.h"
-#define M_PI 3.14159265    ///< Mathematical constant PI.
+#include "helper_math.h"  /// Math API
+#define M_PI 3.14159265   ///< Mathematical constant PI.
 #define MAX_STEP_RATIO 2  ///< Maximum step length compared to box size.
 #define TOL 1e-3 // toleranced error for each step [0.001~0.00001]
 
