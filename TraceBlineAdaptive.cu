@@ -349,10 +349,10 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         ncross_dir3=make_float3(ncross_dir[0],ncross_dir[1],ncross_dir[2]);
         B_Pstart = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true);
         
-        if(PP1.z<3){    
-            if (fabsf(dot3(B_Pstart,ncross_dir3))<=0.05){tol_this=TOL/8e3;}
-            else {tol_this=TOL*powf(fabsf(dot3(B_Pstart,ncross_dir3)),3);}
-        }
+        //if(PP1.z<3){    
+        if (fabsf(dot3(B_Pstart,ncross_dir3))<=0.05){tol_this=TOL/8e3;}
+        else {tol_this=TOL*powf(fabsf(dot3(B_Pstart,ncross_dir3)),1.5);}
+        //}
         else{tol_this=TOL;}
             
         tol_this=tol_this*tol_coef;
