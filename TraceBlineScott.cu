@@ -369,11 +369,11 @@ __device__ float9 TraceBlineScott(float *Bx,float *By,float *Bz,int3 BshapeN3,\
         Nb0 = length(Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,false));
         // tol settings
 
-        if(PP1.z<3){    
-            if (fabsf(dot3(B_Pstart,ncross_dir3))<=0.05){tol_this=TOL/8e3;}
-            else {tol_this=TOL*powf(fabsf(dot3(B_Pstart,ncross_dir3)),3);}
-        }
-        else{tol_this=TOL;}
+        //if(PP1.z<3){    
+        //    if (fabsf(dot3(B_Pstart,ncross_dir3))<=0.05){tol_this=TOL/8e3;}
+        //    else {tol_this=TOL*powf(fabsf(dot3(B_Pstart,ncross_dir3)),3);}
+        //}
+        //else{tol_this=TOL;}
         
         tol_this=tol_this*tol_coef;
         
