@@ -37,62 +37,53 @@ __forceinline__ __device__ float get_Idx3d(float *Arr,int3 AShapeN3,int Idx0,int
     return Arr[Idx2* AShapeN3.y*AShapeN3.x  +  Idx1*AShapeN3.x  +  Idx0];
 }
 
-__global__ void  test_Idx3d(float *Arr,int *AShapeN, int *getIdx,float *res){
-    printf("idx : %d    %d    %d   ", getIdx[0],getIdx[1],getIdx[2]);
-    int3 AShapeN3 = make_int3(AShapeN[0],AShapeN[1],AShapeN[2]);
-    res[0] = get_Idx3d(Arr,AShapeN3,getIdx[0],getIdx[1],getIdx[2]);
-}
 
-__device__ float Interp3d(float *Arr,int3 AShapeN3, \
-    float inPoint_0, float inPoint_1, float inPoint_2){
 
-    //algorithm [https://core.ac.uk/download/pdf/44386053.pdf]
-    float rx,ry,rz; // ratio of the point
-    float Arr000,Arr001,Arr010,Arr011,Arr100,Arr101,Arr110,Arr111;
-    float Aget;
-    int x_Idx,y_Idx,z_Idx;
+__device__ int GetIndexBiSearch(float point_loc,int arr_len, \
+    float *x_arr){
+        float point_loc_real;
+        int idx0,idx1,idx_mid;
+        int res_idx;
 
-    // handle out of boundary problem by extending
-    inPoint_0 = (inPoint_0>0) ? inPoint_0 : 0.0001;
-    inPoint_1 = (inPoint_1>0) ? inPoint_1 : 0.0001;
-    inPoint_2 = (inPoint_2>0) ? inPoint_2 : 0.0001;
-    inPoint_0 = (inPoint_0<AShapeN3.x-1) ? inPoint_0 : ((float)AShapeN3.x-1-0.0001);
-    inPoint_1 = (inPoint_1<AShapeN3.y-1) ? inPoint_1 : ((float)AShapeN3.y-1-0.0001);
-    inPoint_2 = (inPoint_2<AShapeN3.z-1) ? inPoint_2 : ((float)AShapeN3.z-1-0.0001);
+        idx0=0;
+        idx1=arr_len-1;
+        idx_mid=(arr_len/2);
 
-    // ratio of the points to adjacent grid
-    rx = inPoint_0-floorf(inPoint_0);
-    ry = inPoint_1-floorf(inPoint_1);
-    rz = inPoint_2-floorf(inPoint_2);
+        while(idx1-idx0 > 3){
+            if (point_loc_real > x_arr[idx_mid]){
+                idx0=idx_mid;
+            }else{
+                idx1=idx_mid;}
+            idx_mid = ((idx0+idx1)/2);}
+        if (point_loc_real > x_arr[idx_mid]){
+            res_idx=idx_mid;
+        }else{
+            res_idx=idx_mid-1;}
 
-    // index of point in the down-side
-    x_Idx = __float2int_rd(inPoint_0);
-    y_Idx = __float2int_rd(inPoint_1);
-    z_Idx = __float2int_rd(inPoint_2);
-    
-    // grid boundary
-    Arr000 = get_Idx3d(Arr,AShapeN3, x_Idx  ,y_Idx  ,z_Idx  );
-    Arr001 = get_Idx3d(Arr,AShapeN3, x_Idx  ,y_Idx  ,z_Idx+1);
-    Arr010 = get_Idx3d(Arr,AShapeN3, x_Idx  ,y_Idx+1,z_Idx  );
-    Arr011 = get_Idx3d(Arr,AShapeN3, x_Idx  ,y_Idx+1,z_Idx+1);
-    Arr100 = get_Idx3d(Arr,AShapeN3, x_Idx+1,y_Idx  ,z_Idx  );
-    Arr101 = get_Idx3d(Arr,AShapeN3, x_Idx+1,y_Idx  ,z_Idx+1);
-    Arr110 = get_Idx3d(Arr,AShapeN3, x_Idx+1,y_Idx+1,z_Idx  );
-    Arr111 = get_Idx3d(Arr,AShapeN3, x_Idx+1,y_Idx+1,z_Idx+1);
+        if (res_idx>arr_len-2){
+            res_idx=arr_len-2;} // make sure no overflow
+        return res_idx;
+    }
 
-    Aget =      Arr000* (1.-rx)*(1.-ry)*(1.-rz)+\
-                Arr001* (1.-rx)*(1.-ry)*(  rz)+\
-                Arr010* (1.-rx)*(  ry)*(1.-rz)+\
-                Arr011* (1.-rx)*(  ry)*(  rz)+\
-                Arr100* (  rx)*(1.-ry)*(1.-rz)+\
-                Arr101* (  rx)*(1.-ry)*(  rz)+\
-                Arr110* (  rx)*(  ry)*(1.-rz)+\
-                Arr111* (  rx)*(  ry)*(  rz);
-    return Aget;
-}
+
+__device__ int GetIndexUniStretch(float point_loc,int arr_len, \
+    float *x_arr){
+        int res_idx;
+        res_idx = __float2int_rd((point_loc-x_arr[0])/((x_arr[arr_len-1]-x_arr[0])/__int2float_rd(arr_len)));
+        if(res_idx<0){res_idx=0;}
+        if(res_idx>arr_len-2){res_idx=arr_len-2;}
+        return res_idx;
+    }
+
+
+
+
+// get rid of interp3d
 
 inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,\
-    int3 AShapeN3, float3 inPoint_this,bool norm_flag){
+    int3 AShapeN3, float3 inPoint_this,bool norm_flag,\
+    float *x_arr, float *y_arr, float *z_arr,\
+    bool flag_uni){
     // normalized B interpolation
     //algorithm [https://core.ac.uk/download/pdf/44386053.pdf]
     float rx,ry,rz; // ratio of the point
@@ -103,18 +94,33 @@ inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,\
     int x_Idx,y_Idx,z_Idx;
     float norm_B;
     float3 res;
-
+    
     float inPoint_0=inPoint_this.x;
     float inPoint_1=inPoint_this.y;
     float inPoint_2=inPoint_this.z;
+    
+    inPoint_0 = (inPoint_0>x_arr[0]) ? inPoint_0 : x_arr[0]+1e-6;
+    inPoint_1 = (inPoint_1>y_arr[0]) ? inPoint_1 : y_arr[0]+1e-6;
+    inPoint_2 = (inPoint_2>z_arr[0]) ? inPoint_2 : z_arr[0]+1e-6;
+    inPoint_0 = (inPoint_0<x_arr[AShapeN3.x-1]) ? inPoint_0 : x_arr[AShapeN3.x-1]-1e-6;
+    inPoint_1 = (inPoint_1<y_arr[AShapeN3.y-1]) ? inPoint_1 : y_arr[AShapeN3.y-1]-1e-6;
+    inPoint_2 = (inPoint_2<z_arr[AShapeN3.z-1]) ? inPoint_2 : z_arr[AShapeN3.z-1]-1e-6;
+
     // ratio of the points to adjacent grid
-    rx = inPoint_0-floorf(inPoint_0);
-    ry = inPoint_1-floorf(inPoint_1);
-    rz = inPoint_2-floorf(inPoint_2);
-    // index of point in the down-side
-    x_Idx = __float2int_rd(inPoint_0);
-    y_Idx = __float2int_rd(inPoint_1);
-    z_Idx = __float2int_rd(inPoint_2);
+    if(flag_uni){
+        x_Idx = GetIndexUniStretch( inPoint_0, AShapeN3.x, x_arr);
+        y_Idx = GetIndexUniStretch( inPoint_1, AShapeN3.y, y_arr);
+        z_Idx = GetIndexUniStretch( inPoint_2, AShapeN3.z, z_arr);
+    }else{
+        x_Idx = GetIndexBiSearch( inPoint_0, AShapeN3.x, x_arr);
+        y_Idx = GetIndexBiSearch( inPoint_1, AShapeN3.y, y_arr);
+        z_Idx = GetIndexBiSearch( inPoint_2, AShapeN3.z, z_arr);
+    }
+
+    // ratio of the points to adjacent grid
+    rx = (inPoint_0-x_arr[x_Idx])/(x_arr[x_Idx+1]-x_arr[x_Idx]);
+    ry = (inPoint_1-y_arr[y_Idx])/(y_arr[y_Idx+1]-y_arr[y_Idx]);
+    rz = (inPoint_2-z_arr[z_Idx])/(z_arr[z_Idx+1]-z_arr[z_Idx]);
     
     if (inPoint_0<= 0.){
         rx=0; x_Idx=0;}

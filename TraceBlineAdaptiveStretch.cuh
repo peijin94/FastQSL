@@ -34,7 +34,8 @@ __global__ void  test_Idx3d(float *Arr,int *AShapeN, int *getIdx,float *res);
 * @return The interpolated value
 */
 __device__ float Interp3d(float *Arr,int3 AShapeN3, \
-    float inPoint_0, float inPoint_1, float inPoint_2);
+    float inPoint_0, float inPoint_1, float inPoint_2,\
+    float *x_arr, float *y_arr, float *z_arr);
 
 /**
 * Interpolation of normalized Bx,By,Bz at one time, the position for interpolation is the same for all three arrays.
@@ -48,7 +49,10 @@ __device__ float Interp3d(float *Arr,int3 AShapeN3, \
 * @param[in] inPoint_0 Position in z axis
 * @return The interpolated value of Bx,By,Bz,w
 */
-inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,int3 AShapeN3, float3 inPoint_this,bool norm_flag);
+inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,\
+    int3 AShapeN3, float3 inPoint_this,bool norm_flag,\
+    float *x_arr, float *y_arr, float *z_arr);
+
 
 inline __device__ float3 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len);
 
