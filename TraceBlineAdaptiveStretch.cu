@@ -122,19 +122,7 @@ inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,\
     ry = (inPoint_1-y_arr[y_Idx])/(y_arr[y_Idx+1]-y_arr[y_Idx]);
     rz = (inPoint_2-z_arr[z_Idx])/(z_arr[z_Idx+1]-z_arr[z_Idx]);
     
-    if (inPoint_0<= 0.){
-        rx=0; x_Idx=0;}
-    if (inPoint_0>= AShapeN3.x -1){
-        rx=1; x_Idx=AShapeN3.x -2;}
-    if (inPoint_1<= 0.){
-        ry=0; y_Idx=0;}
-    if (inPoint_1>= AShapeN3.y -1){
-        ry=1; y_Idx=AShapeN3.y -2;}
-    if (inPoint_2<= 0.){
-        rz=0.; z_Idx=0;}
-    if (inPoint_2>= AShapeN3.z -1){
-        rz=1.; z_Idx=AShapeN3.z -2;}
-    
+        
     // calculate the weight of the point and use for three times
     w000 = (1.-rx)*(1.-ry)*(1.-rz);
     w001 = (1.-rx)*(1.-ry)*(   rz);

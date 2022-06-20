@@ -51,8 +51,8 @@ __device__ float Interp3d(float *Arr,int3 AShapeN3, \
 */
 inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,\
     int3 AShapeN3, float3 inPoint_this,bool norm_flag,\
-    float *x_arr, float *y_arr, float *z_arr);
-
+    float *x_arr, float *y_arr, float *z_arr,\
+    bool flag_uni)
 
 inline __device__ float3 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len);
 
