@@ -52,17 +52,22 @@ __device__ float Interp3d(float *Arr,int3 AShapeN3, \
 inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,\
     int3 AShapeN3, float3 inPoint_this,bool norm_flag,\
     float *x_arr, float *y_arr, float *z_arr,\
-    bool flag_uni)
+    bool flag_uni);
 
-inline __device__ float3 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len);
+    inline __device__ float3 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len,\
+        float *x_arr, float *y_arr, float *z_arr,bool flag_uni);
 
-inline __device__ float4 RKF45(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len);
+inline __device__ float4 RKF45(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len,\
+    float *x_arr, float *y_arr, float *z_arr,bool flag_uni);
 
-inline __device__ float3 RK4_boundary(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len,int b_dim);
+inline __device__ float3 RK4_boundary(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0,\
+        float s_len,int b_dim, float *x_arr, float *y_arr, float *z_arr,bool flag_uni);
 
-inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur);
+inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur,\
+    float *x_arr, float *y_arr, float *z_arr,bool flag_uni);
 
 __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
+    float *x_arr, float *y_arr, float *z_arr,bool flag_uni,\
     float *curB_x, float *curB_y,  float *curB_z,double *twist,bool *curB_flag,\
     float *P_0, float *P_out, float *ncross_dir, float s_len, int *flag, double *len_this,\
     float direction,float tol_coef);
@@ -71,6 +76,7 @@ __global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res
 
 
 __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
+    float *x_arr, float *y_arr, float *z_arr,bool flag_uni,\
     float *curB_x, float *curB_y,  float *curB_z,double *twist,bool *curB_flag,\
     float *inp_x,float *inp_y, float *inp_z, float *inp_cross_dir,\
     float *start_x,float *start_y, float *start_z, int *flag_start,\
