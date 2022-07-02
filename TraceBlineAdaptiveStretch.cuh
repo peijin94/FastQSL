@@ -76,7 +76,7 @@ __global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res
 
 
 __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
-    float *x_arr, float *y_arr, float *z_arr,bool flag_uni,\
+    float *x_arr, float *y_arr, float *z_arr,bool *flag_uni,\
     float *curB_x, float *curB_y,  float *curB_z,double *twist,bool *curB_flag,\
     float *inp_x,float *inp_y, float *inp_z, float *inp_cross_dir,\
     float *start_x,float *start_y, float *start_z, int *flag_start,\

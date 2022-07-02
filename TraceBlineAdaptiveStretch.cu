@@ -418,7 +418,7 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
 
 
 __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
-    float *x_arr, float *y_arr, float *z_arr,bool flag_uni,\
+    float *x_arr, float *y_arr, float *z_arr,bool *flag_uni,\
     float *curB_x, float *curB_y,  float *curB_z,double *twist,bool *curB_flag,\
     float *inp_x,float *inp_y, float *inp_z, float *inp_cross_dir,\
     float *start_x,float *start_y, float *start_z, int *flag_start,\
@@ -429,7 +429,7 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
     float *s_len,unsigned long long *N,double *LineLen,float *tol_coef){
         
         unsigned long long x = blockIdx.x * blockDim.x + threadIdx.x;
-        unsigned long long y = blockIdx.y * blockDim.y + threadIdx.y; 
+        unsigned long long y = blockIdx.y * blockDim.y + threadIdx.y;
         unsigned long long idx_cur,dim_all,works_per_thread,Bline_ID,line_idx;
         int3 BshapeN3 = make_int3(BshapeN[0],BshapeN[1],BshapeN[2]);
 
@@ -454,11 +454,11 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
                 P_0[1] = inp_y[Bline_ID];
                 P_0[2] = inp_z[Bline_ID]; 
                 twist_this[0]=0;
-                TraceBlineAdap(Bx,By,Bz,BshapeN3,x_arr,y_arr,z_arr,flag_uni,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+                TraceBlineAdap(Bx,By,Bz,BshapeN3,x_arr,y_arr,z_arr,flag_uni[0],curB_x,curB_y,curB_z,twist_this,curB_flag,\
                     P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,1.0,tol_coef[0]); // forward and backward
                 
                 P_this = make_float3(P_out[0],P_out[1],P_out[2]);
-                B_res = Interp3dxyzn(Bx,By,Bz,BshapeN3,P_this,false,x_arr,y_arr,z_arr,flag_uni);
+                B_res = Interp3dxyzn(Bx,By,Bz,BshapeN3,P_this,false,x_arr,y_arr,z_arr,flag_uni[0]);
                 B_end_x[Bline_ID] = B_res.x;    B_end_y[Bline_ID] = B_res.y;    B_end_z[Bline_ID] = B_res.z;
                 end_x[Bline_ID] = P_out[0];
                 end_y[Bline_ID] = P_out[1];
@@ -471,11 +471,11 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
                 P_0[1] = inp_y[Bline_ID];
                 P_0[2] = inp_z[Bline_ID]; 
                 twist_this[0]=0;
-                TraceBlineAdap(Bx,By,Bz,BshapeN3,x_arr,y_arr,z_arr,flag_uni,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+                TraceBlineAdap(Bx,By,Bz,BshapeN3,x_arr,y_arr,z_arr,flag_uni[0],curB_x,curB_y,curB_z,twist_this,curB_flag,\
                     P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,-1.0,tol_coef[0]); // forward and backward
 
                 P_this = make_float3(P_out[0],P_out[1],P_out[2]);
-                B_res = Interp3dxyzn(Bx,By,Bz,BshapeN3,P_this,false,x_arr,y_arr,z_arr,flag_uni);
+                B_res = Interp3dxyzn(Bx,By,Bz,BshapeN3,P_this,false,x_arr,y_arr,z_arr,flag_uni[0]);
                 B_start_x[Bline_ID] = B_res.x;    B_start_y[Bline_ID] = B_res.y;    B_start_z[Bline_ID] = B_res.z;
                 start_x[Bline_ID] = P_out[0];
                 start_y[Bline_ID] = P_out[1];
@@ -488,7 +488,7 @@ __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
                 // record B in plane
 
                 P_this = make_float3(P_0[0],P_0[1],P_0[2]);
-                B_res = Interp3dxyzn(Bx,By,Bz,BshapeN3,P_this,false,x_arr,y_arr,z_arr,flag_uni);
+                B_res = Interp3dxyzn(Bx,By,Bz,BshapeN3,P_this,false,x_arr,y_arr,z_arr,flag_uni[0]);
                 B_this_x[Bline_ID] = B_res.x;    B_this_y[Bline_ID] = B_res.y;    B_this_z[Bline_ID] = B_res.z;
 
                 if (fabsf(B_this_x[Bline_ID]*inp_cross_dir[0]+B_this_y[Bline_ID]*inp_cross_dir[1]+B_this_z[Bline_ID]*inp_cross_dir[2])*100.\
