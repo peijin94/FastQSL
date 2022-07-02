@@ -39,9 +39,8 @@ __forceinline__ __device__ float get_Idx3d(float *Arr,int3 AShapeN3,int Idx0,int
 
 
 
-__device__ int GetIndexBiSearch(float point_loc,int arr_len, \
+__device__ int GetIndexBiSearch(float point_loc_real,int arr_len, \
     float *x_arr){
-        float point_loc_real;
         int idx0,idx1,idx_mid;
         int res_idx;
 
@@ -98,6 +97,7 @@ inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,\
     float inPoint_0=inPoint_this.x;
     float inPoint_1=inPoint_this.y;
     float inPoint_2=inPoint_this.z;
+
     
     inPoint_0 = (inPoint_0>x_arr[0]) ? inPoint_0 : x_arr[0]+1e-6;
     inPoint_1 = (inPoint_1>y_arr[0]) ? inPoint_1 : y_arr[0]+1e-6;
@@ -203,6 +203,7 @@ inline __device__ float4 RKF45(float *Bx,float *By,float *Bz,int3 BshapeN3, floa
     float3 P_a,P_b;
     float4 res_end;
     float err_step; 
+    // printf("s_len=%f\n",s_len);
 
     // parameters of the Butcher tableau
     //float c2,c3,c4,c5,c6;
@@ -326,8 +327,9 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     float direction,float tol_coef){
         unsigned long step_count = 0;
         //unsigned long step_lim = (MAX_STEP_RATIO*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
-        double len_lim = (MAX_STEP_RATIO*1.0*(
-            x_arr[BshapeN3.x]+y_arr[BshapeN3.y]+z_arr[BshapeN3.z]));
+        double len_lim = (MAX_STEP_RATIO*1.0*(\
+            (x_arr[BshapeN3.x-1]+y_arr[BshapeN3.y-1]+z_arr[BshapeN3.z-1])-\
+            (x_arr[0]+y_arr[0]+z_arr[0])));
         float scale,tol_this;
         float p_mid, p1,p2; // for linear interpolation
         int flag_this;
