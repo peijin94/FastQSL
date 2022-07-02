@@ -116,4 +116,64 @@ def QCalcPlane(x_end_arr,   y_end_arr,  z_end_arr,   flag_end_arr,
     Q[nan_arr[1:-1,1:-1]>0]=cupy.nan 
     return Q
 
+
+# curl of B with grid
+def curl_of_B_grid(Bx,By,Bz,arr_x,arr_y,arr_z):
+    curl_Bx = cupy.zeros(Bx.shape)
+    curl_By = cupy.zeros(By.shape)
+    curl_Bz = cupy.zeros(Bz.shape)
+
+    curl_Bx[1:-1,1:-1,1:-1] = diff_3point(Bz,arr_y,1)-diff_3point(By,arr_z,2)
+    curl_By[1:-1,1:-1,1:-1] = diff_3point(Bx,arr_z,2)-diff_3point(Bz,arr_x,0)
+    curl_Bz[1:-1,1:-1,1:-1] = diff_3point(By,arr_x,0)-diff_3point(Bx,arr_y,1)
     
+    # copy boundary
+    curl_Bx[:,:,0] = curl_Bx[:,:,1]
+    curl_By[:,:,0] = curl_By[:,:,1]
+    curl_Bz[:,:,0] = curl_Bz[:,:,1]
+
+    curl_Bx[:,0,:] = curl_Bx[:,1,:]
+    curl_By[:,0,:] = curl_By[:,1,:]
+    curl_Bz[:,0,:] = curl_Bz[:,1,:]
+
+    curl_Bx[0,:,:] = curl_Bx[1,:,:]
+    curl_By[0,:,:] = curl_By[1,:,:]
+    curl_Bz[0,:,:] = curl_Bz[1,:,:]
+
+
+    curl_Bx[:,:,-1] = curl_Bx[:,:,-2]
+    curl_By[:,:,-1] = curl_By[:,:,-2]
+    curl_Bz[:,:,-1] = curl_Bz[:,:,-2]
+
+    curl_Bx[:,-1,:] = curl_Bx[:,-2,:]
+    curl_By[:,-1,:] = curl_By[:,-2,:]
+    curl_Bz[:,-1,:] = curl_Bz[:,-2,:]
+
+    curl_Bx[-1,:,:] = curl_Bx[-2,:,:]
+    curl_By[-1,:,:] = curl_By[-2,:,:]
+    curl_Bz[-1,:,:] = curl_Bz[-2,:,:]
+
+    return curl_Bx,curl_By,curl_Bz
+
+
+def diff_3point(Cube, arr_x, axis):
+    """
+    perform 3 point difference on a 3D array
+    https://pure.rug.nl/ws/portalfiles/portal/3332271/1992JEngMathVeldman.pdf
+    PLAYING WITH NONUNIFORM GRIDS
+    """
+    ax_all = np.delete(np.array([0,1,2]),axis)
+    diff_x_single = arr_x[1:] - arr_x[:-1]
+    diff_x=np.expand_dims(diff_x_single,axis=tuple([*ax_all]))
+    
+    if axis==0:
+        diff = ((Cube[2:,1:-1,1:-1]-Cube[1:-1,1:-1,1:-1])/diff_x[1:,:,:]*diff_x[:-1,:,:]/(diff_x[1:,:,:]+diff_x[:-1,:,:])
+               +(Cube[1:-1,1:-1,1:-1]-Cube[0:-2,1:-1,1:-1])/diff_x[:-1,:,:]*diff_x[1:,:,:]/(diff_x[1:,:,:]+diff_x[:-1,:,:]))
+    elif axis==1:
+        diff = ((Cube[1:-1,2:,1:-1]-Cube[1:-1,1:-1,1:-1])/diff_x[:,1:,:]*diff_x[:,:-1,:]/(diff_x[:,1:,:]+diff_x[:,:-1,:])
+               +(Cube[1:-1,1:-1,1:-1]-Cube[1:-1,0:-2,1:-1])/diff_x[:,:-1,:]*diff_x[:,1:,:]/(diff_x[:,1:,:]+diff_x[:,:-1,:]))
+    elif axis==2:
+        diff = ((Cube[1:-1,1:-1,2:]-Cube[1:-1,1:-1,1:-1])/diff_x[:,:,1:]*diff_x[:,:,:-1]/(diff_x[:,:,1:]+diff_x[:,:,:-1])
+               +(Cube[1:-1,1:-1,1:-1]-Cube[1:-1,1:-1,0:-2])/diff_x[:,:,:-1]*diff_x[:,:,1:]/(diff_x[:,:,1:]+diff_x[:,:,:-1]))
+    
+    return diff
