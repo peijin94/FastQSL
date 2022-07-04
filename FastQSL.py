@@ -116,7 +116,6 @@ def QCalcPlane(x_end_arr,   y_end_arr,  z_end_arr,   flag_end_arr,
     Q[nan_arr[1:-1,1:-1]>0]=cupy.nan 
     return Q
 
-
 # curl of B with grid
 def curl_of_B_grid(Bx,By,Bz,arr_x,arr_y,arr_z):
     curl_Bx = cupy.zeros(Bx.shape)
@@ -128,33 +127,18 @@ def curl_of_B_grid(Bx,By,Bz,arr_x,arr_y,arr_z):
     curl_Bz[1:-1,1:-1,1:-1] = diff_3point(By,arr_x,0)-diff_3point(Bx,arr_y,1)
     
     # copy boundary
-    curl_Bx[:,:,0] = curl_Bx[:,:,1]
-    curl_By[:,:,0] = curl_By[:,:,1]
-    curl_Bz[:,:,0] = curl_Bz[:,:,1]
-
-    curl_Bx[:,0,:] = curl_Bx[:,1,:]
-    curl_By[:,0,:] = curl_By[:,1,:]
-    curl_Bz[:,0,:] = curl_Bz[:,1,:]
-
-    curl_Bx[0,:,:] = curl_Bx[1,:,:]
-    curl_By[0,:,:] = curl_By[1,:,:]
-    curl_Bz[0,:,:] = curl_Bz[1,:,:]
-
-
-    curl_Bx[:,:,-1] = curl_Bx[:,:,-2]
-    curl_By[:,:,-1] = curl_By[:,:,-2]
-    curl_Bz[:,:,-1] = curl_Bz[:,:,-2]
-
-    curl_Bx[:,-1,:] = curl_Bx[:,-2,:]
-    curl_By[:,-1,:] = curl_By[:,-2,:]
-    curl_Bz[:,-1,:] = curl_Bz[:,-2,:]
-
-    curl_Bx[-1,:,:] = curl_Bx[-2,:,:]
-    curl_By[-1,:,:] = curl_By[-2,:,:]
-    curl_Bz[-1,:,:] = curl_Bz[-2,:,:]
-
+    [curl_Bx,curl_By,curl_Bz] = [copy_boundary(x) for x in [curl_Bx,curl_By,curl_Bz]]
     return curl_Bx,curl_By,curl_Bz
 
+def copy_boundary(arr):
+    arr[:,:,0] = arr[:,:,1]
+    arr[:,0,:] = arr[:,1,:]
+    arr[0,:,:] = arr[1,:,:]
+
+    arr[:,:,-1] = arr[:,:,-2]
+    arr[:,-1,:] = arr[:,-2,:]
+    arr[-1,:,:] = arr[-2,:,:]
+    return arr
 
 def diff_3point(Cube, arr_x, axis):
     """
