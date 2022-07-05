@@ -1,4 +1,4 @@
-# FastQFact
+# FastQSL
 
 A module to calculate Q Factor with GPU.
 
