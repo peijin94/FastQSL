@@ -22,7 +22,7 @@ subroutine interpolate_grad_unit_vec_B3(vp, unit_vec_bp, grad_unit_vec_B)
 use trace_common
 use field_common
 implicit none
-real:: w(0:1,0:2), wd(0:1), weight(0:1,0:1,0:1), vp(0:2), bp(0:2), unit_vec_bp(0:2), &
+real:: w(0:1,0:2), dw(0:1), weight(0:1,0:1,0:1), vp(0:2), bp(0:2), unit_vec_bp(0:2), &
 grad_unit_vec_B(0:2,0:2), unit_vec_B_cell(0:2,0:1,0:1,0:1)
 integer:: round(0:1,0:2), i, j, k
 !----------------------------------------------------------------------------
@@ -46,19 +46,19 @@ forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=w(i,0)*w(j,1)*w(k,2)
 forall(i=0:2) Bp(i)=sum(weight*Bfield(i, round(:,0), round(:,1), round(:,2)))
 unit_vec_bp=bp/norm2(bp)
 
-wd(0)=-1.0
-wd(1)= 1.0
+dw(0)=-1.0
+dw(1)= 1.0
 
 forall(i=0:1,j=0:1,k=0:1) unit_vec_B_cell(:,i,j,k)= &
 Bfield(:, round(i,0), round(j,1), round(k,2))/norm2(Bfield(:, round(i,0), round(j,1), round(k,2)))
 
-forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=wd(i)*w(j,1)*w(k,2)
+forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=dw(i)*w(j,1)*w(k,2)
 forall(i=0:2)  grad_unit_vec_B(0,i)=sum(weight*unit_vec_B_cell(i,:,:,:))
 
-forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=w(i,0)*wd(j)*w(k,2)
+forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=w(i,0)*dw(j)*w(k,2)
 forall(i=0:2)  grad_unit_vec_B(1,i)=sum(weight*unit_vec_B_cell(i,:,:,:))
 
-forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=w(i,0)*w(j,1)*wd(k)
+forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=w(i,0)*w(j,1)*dw(k)
 forall(i=0:2)  grad_unit_vec_B(2,i)=sum(weight*unit_vec_B_cell(i,:,:,:))
 
 end subroutine interpolate_grad_unit_vec_B3
@@ -70,7 +70,7 @@ subroutine interpolate_grad_unit_vec_B3_stretch(vp, unit_vec_bp, grad_unit_vec_B
 use trace_common
 use field_common
 implicit none
-real:: w(0:1,0:2), wd(0:1), weight(0:1,0:1,0:1), vp(0:2), bp(0:2), unit_vec_bp(0:2), &
+real:: w(0:1,0:2), dw(0:1), weight(0:1,0:1,0:1), vp(0:2), bp(0:2), unit_vec_bp(0:2), &
 grad_unit_vec_B(0:2,0:2), unit_vec_B_cell(0:2,0:1,0:1,0:1), vpBound
 integer:: round(0:1,0:2), i, j, k, index_i, index_j, index_k
 !----------------------------------------------------------------------------
@@ -92,16 +92,16 @@ unit_vec_bp=bp/norm2(bp)
 forall(i=0:1,j=0:1,k=0:1) unit_vec_B_cell(:,i,j,k)= &
 Bfield(:, round(i,0), round(j,1), round(k,2))/norm2(Bfield(:, round(i,0), round(j,1), round(k,2)))
 
-wd(0)=-1.0
-wd(1)= 1.0
+dw(0)=-1.0
+dw(1)= 1.0
 
-forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=wd(i)/dxa(index_i)*w(j,1)*w(k,2)
+forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=dw(i)/dxa(index_i)*w(j,1)*w(k,2)
 forall(i=0:2)  grad_unit_vec_B(0,i)=sum(weight*unit_vec_B_cell(i,:,:,:))
 
-forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=w(i,0)*wd(j)/dya(index_j)*w(k,2)
+forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=w(i,0)*dw(j)/dya(index_j)*w(k,2)
 forall(i=0:2)  grad_unit_vec_B(1,i)=sum(weight*unit_vec_B_cell(i,:,:,:))
 
-forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=w(i,0)*w(j,1)*wd(k)/dza(index_k)
+forall(i=0:1,j=0:1,k=0:1) weight(i,j,k)=w(i,0)*w(j,1)*dw(k)/dza(index_k)
 forall(i=0:2)  grad_unit_vec_B(2,i)=sum(weight*unit_vec_B_cell(i,:,:,:))
 
 end subroutine interpolate_grad_unit_vec_B3_stretch
