@@ -80,7 +80,7 @@ Enjoy.
 
 -----------------------------
 
-Cite as:
+## Cite as
 
 * Zhang, P., Chen, J., Liu, R. and Wang, C., 2022. FastQSL: a fast computation method for Quasi-Separatrix Layers. arXiv preprint arXiv:2208.12569.
 
