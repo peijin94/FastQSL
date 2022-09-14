@@ -1,12 +1,12 @@
-# FastQFact
+# FastQSL
 
-A module to calculate Q Factor with GPU.
+A module to calculate Q Factor with GPU, [FastQSL](https://arxiv.org/abs/2208.12569)
 
 The idea is to do the most computational intensive work in GPU with compiled code (TraceBline.cu), and do the rest of the complex but not computational intensive work in Python.
 
 ## Dependencies
 
-* CUDA >= 10.2
+* CUDA >= 11
 * PyCuda
 * Cupy
 
@@ -76,3 +76,26 @@ python -m jupyterlab --port 9999
 Normally it will pop up a browser automatically, if it didn't, you need to it manually by copy the url in the output of the command to a browser (Chrome recomended)
 
 Enjoy.
+
+
+-----------------------------
+
+Cite as:
+
+* Zhang, P., Chen, J., Liu, R. and Wang, C., 2022. FastQSL: a fast computation method for Quasi-Separatrix Layers. arXiv preprint arXiv:2208.12569.
+
+
+```bibtex
+@ARTICLE{2022arXiv220812569Z,
+       author = {{Zhang}, Peijin and {Chen}, Jun and {Liu}, Rui and {Wang}, Chuanbing},
+        title = "{FastQSL: a fast computation method for Quasi-Separatrix Layers}",
+      journal = {arXiv e-prints},
+         year = 2022,
+        month = aug,
+          eid = {arXiv:2208.12569},
+        pages = {arXiv:2208.12569},
+archivePrefix = {arXiv},
+       eprint = {2208.12569},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2022arXiv220812569Z},
+}
+```
