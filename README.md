@@ -82,20 +82,21 @@ Enjoy.
 
 ## Cite as
 
-* Zhang, P., Chen, J., Liu, R. and Wang, C., 2022. FastQSL: a fast computation method for Quasi-Separatrix Layers. arXiv preprint arXiv:2208.12569.
-
+* Zhang, P., Chen, J.*, Liu, R. and Wang, C., 2022. FastQSL: a fast computation method for Quasi-Separatrix Layers. The Astrophysical Journal, 937, 26
 
 ```bibtex
-@ARTICLE{2022arXiv220812569Z,
-       author = {{Zhang}, Peijin and {Chen}, Jun and {Liu}, Rui and {Wang}, Chuanbing},
-        title = "{FastQSL: a fast computation method for Quasi-Separatrix Layers}",
-      journal = {arXiv e-prints},
+@ARTICLE{2022ApJ...937...26Z,
+       author = {{Zhang}, PeiJin and {Chen}, Jun and {Liu}, Rui and {Wang}, ChuanBing},
+        title = "{FastQSL: A Fast Computation Method for Quasi-separatrix Layers}",
+      journal = {\apj},
+     keywords = {Solar magnetic fields, GPU computing, 1503, 1969},
          year = 2022,
-        month = aug,
-          eid = {arXiv:2208.12569},
-        pages = {arXiv:2208.12569},
-archivePrefix = {arXiv},
-       eprint = {2208.12569},
-       adsurl = {https://ui.adsabs.harvard.edu/abs/2022arXiv220812569Z},
+        month = sep,
+       volume = {937},
+       number = {1},
+          eid = {26},
+        pages = {26},
+          doi = {10.3847/1538-4357/ac8d61},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2022ApJ...937...26Z},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
 }
-```
