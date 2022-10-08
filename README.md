@@ -20,7 +20,7 @@ Buy a computer with Nvidia GPU
 
 #### Software
 
-* Install GPU driver, 驱动精灵[http://www.drivergenius.com/](http://www.drivergenius.com/) is a easy way for windows, for 'apt' based Linux, try ```sudo ubuntu-drivers autoinstall```.
+* Install GPU driver, [https://www.nvidia.com/Download/index.aspx](https://www.nvidia.com/Download/index.aspx), for 'apt' based Linux, try ```sudo ubuntu-drivers autoinstall```.
 * [https://developer.nvidia.com/Cuda-downloads](https://developer.nvidia.com/Cuda-downloads) Download cuda **v10.2! (don't install the newest)**
 * Install anaconda [https://docs.anaconda.com/anaconda/install/windows/](https://docs.anaconda.com/anaconda/install/windows/)
 * Install git
