@@ -4,6 +4,8 @@ A module to calculate Q Factor with GPU, [FastQSL](https://arxiv.org/abs/2208.12
 
 The idea is to do the most computational intensive work in GPU with compiled code (TraceBline.cu), and do the rest of the complex but not computational intensive work in Python.
 
+A cpu version is also provided [https://github.com/el2718/FastQSL](https://github.com/el2718/FastQSL).
+
 ## Dependencies
 
 * CUDA >= 11
