@@ -8,6 +8,7 @@ movie/*
 *.so
 
 .vscode
+.vscode/*
 
 # compiled
 *.cubin
