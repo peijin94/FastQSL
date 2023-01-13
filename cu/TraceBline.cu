@@ -22,7 +22,6 @@ __forceinline__ __device__ float3 divide3(float3 a, float b)
   return make_float3(a.x/b , a.y/b , a.z/b);
 }
 
-
 __forceinline__ __device__ float get_Idx3d(float *Arr,int3 AShapeN3,int Idx0,int Idx1,int Idx2){
     //return Arr[Idx0* AShapeN[1]*AShapeN[2]  +  Idx1* AShapeN[2]  +  Idx2];
     return Arr[Idx2* AShapeN3.y*AShapeN3.x  +  Idx1*AShapeN3.x  +  Idx0];
