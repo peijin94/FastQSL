@@ -10,7 +10,7 @@ A CPU version is also provided [https://github.com/el2718/FastQSL](https://githu
 
 * CUDA >= 11
 * PyCuda
-* Cupy
+* cupy
 
 ## Step by step Tutorial
 
@@ -45,7 +45,7 @@ You should get "conda x.x.x", which means conda is successfully installed.
 Create a new env named 'fastqsl' and use 3.8.2 version of python:
 
 ```bash
-conda create -n fastqsl python=3.8.2
+conda create -n fastqsl python=3.9
 conda activate fastqsl
 ```
 
@@ -54,8 +54,8 @@ after this you should be able to see a '(fastqsl)' in your command line.
 ##### Install dependencies
 
 ```bash
-conda install numpy matplotlib pyvista scipy jupyterlab tqdm
-python -m pip install cupy-cuda102 ipython-autotime 
+conda install numpy matplotlib scipy jupyterlab tqdm
+python -m pip install cupy-cuda117 ipython-autotime pyvista
 ```
 
 ### Run
