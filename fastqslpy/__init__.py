@@ -1,1 +1,3 @@
-from fastqslpy import *
+from . import kernels
+
+__all__ = ['kernels']

@@ -13,6 +13,9 @@ movie/*
 # compiled
 *.cubin
 
+# the data files excluded
+*.sav
+
 # Distribution / packaging
 .Python
 build/
