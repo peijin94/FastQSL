@@ -1,5 +1,9 @@
 # FastQSL
 
+[![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
+
+
+
 A module to calculate Q Factor with GPU, [FastQSL](https://arxiv.org/abs/2208.12569)
 
 The idea is to do the most computational intensive work in GPU with compiled code (TraceBline.cu), and do the rest of the complex but not computational intensive work in Python.
