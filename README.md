@@ -25,6 +25,9 @@ A CPU version is also provided [https://github.com/el2718/FastQSL](https://githu
 * PyCuda
 * cupy
 
+module load for cluster computing
+(CUDA/11.7.0 Xvfb/1.20.13-GCCcore-11.2.0 GCCcore/11.3.0 xorg-macros/1.19.3-GCCcore-11.3.0 X11/20220504-GCCcore-11.3.0 LLVM/14.0.3-GCCcore-11.3.0 Mesa/22.0.3-GCCcore-11.3.0)
+
 ## Step by step Tutorial
 
 ### Preparation
