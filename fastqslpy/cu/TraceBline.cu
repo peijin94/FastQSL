@@ -9,18 +9,23 @@
 #define M_PI 3.14159265   ///< Mathematical constant PI.
 #define MAX_STEP_RATIO 4  ///< Maximum step length compared to box size.
 extern "C"{
-__device__ float lenVec3(float xx,float yy,float zz){
+inline __device__ float lenVec3xyz(float xx,float yy,float zz){
     return sqrtf(xx*xx + yy*yy + zz*zz);}
 
-__forceinline__ __device__ float dot3(float3 a, float3 b)
-{
-  return a.x*b.x + a.y*b.y + a.z*b.z;
-}
+inline __device__ float lenVec3(float3 a){
+    return sqrtf(a.x*a.x + a.y*a.y + a.z*a.z);}
 
-__forceinline__ __device__ float3 divide3(float3 a, float b)
-{
-  return make_float3(a.x/b , a.y/b , a.z/b);
-}
+inline __device__ float dot3(float3 a, float3 b)
+{  return a.x*b.x + a.y*b.y + a.z*b.z;}
+
+inline __device__ double ddot3(float3 a, float3 b)
+{  return (double)a.x*b.x + (double)a.y*b.y + (double)a.z*b.z;}
+
+inline __device__ float3 divide3(float3 a, float b)
+{  return make_float3(a.x/b , a.y/b , a.z/b);}
+
+inline __device__ float3 normalize3(float4 a)
+{  return make_float3(a.x/a.w,  a.y/a.w,  a.z/a.w);}
 
 __forceinline__ __device__ float get_Idx3d(float *Arr,int3 AShapeN3,int Idx0,int Idx1,int Idx2){
     //return Arr[Idx0* AShapeN[1]*AShapeN[2]  +  Idx1* AShapeN[2]  +  Idx2];
@@ -83,9 +88,9 @@ __device__ float Interp3d(float *Arr,int3 AShapeN3, \
     return Aget;
 }
 
-inline __device__ float3 Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int3 AShapeN3, \
-    float inPoint_0, float inPoint_1, float inPoint_2){
-
+inline __device__ float3 Interp3dxyzn(float *Arr_x,float *Arr_y,float *Arr_z,\
+    int3 AShapeN3, float3 inPoint_this,bool norm_flag){
+    // normalized B interpolation
     //algorithm [https://core.ac.uk/download/pdf/44386053.pdf]
     float rx,ry,rz; // ratio of the point
     float Arr000_x,Arr001_x,Arr010_x,Arr011_x,Arr100_x,Arr101_x,Arr110_x,Arr111_x;
@@ -93,7 +98,12 @@ inline __device__ float3 Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int3
     float Arr000_z,Arr001_z,Arr010_z,Arr011_z,Arr100_z,Arr101_z,Arr110_z,Arr111_z;
     float w000,  w001,  w010,  w011,  w100,  w101,  w110,  w111;
     int x_Idx,y_Idx,z_Idx;
+    float norm_B;
     float3 res;
+
+    float inPoint_0=inPoint_this.x;
+    float inPoint_1=inPoint_this.y;
+    float inPoint_2=inPoint_this.z;
     // ratio of the points to adjacent grid
     rx = inPoint_0-floorf(inPoint_0);
     ry = inPoint_1-floorf(inPoint_1);
@@ -178,16 +188,23 @@ inline __device__ float3 Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int3
             Arr101_z* w101+\
             Arr110_z* w110+\
             Arr111_z* w111;
-
+    if(norm_flag){
+        norm_B = sqrtf(res.x*res.x+res.y*res.y+res.z*res.z);
+        res.x = res.x/norm_B;
+        res.y = res.y/norm_B;
+        res.z = res.z/norm_B;}
     return res;
 }
 
+
 __global__ void test_Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int *AShapeN, \
     float *inPoint_0, float *inPoint_1, float *inPoint_2){
-        float3 res;
+        float3 res,pointthis;
+        pointthis=make_float3(inPoint_0[0],inPoint_1[0],inPoint_2[0]);
         int3 shapeshape = make_int3(AShapeN[0],AShapeN[1],AShapeN[2]);
-        res = Interp3dxyz(Arr_x,Arr_y,Arr_z,shapeshape,inPoint_0[0],inPoint_1[0],inPoint_2[0]);
+        res = Interp3dxyzn(Arr_x,Arr_y,Arr_z,shapeshape,pointthis,true);
     }
+
 
 __device__ void stepForward(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     float *P_start, float *P_end,float s_len){
@@ -201,200 +218,243 @@ __device__ void stepForward(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     P_end[2] = P_start[2] + s_len*Bz_cur/B0;
     //printf("Inr:%f  :%f  :%f\n",s_len*Bx_cur/B0,s_len*By_cur/B0,s_len*Bz_cur/B0);
 }
-
-/**
-* 4-stage Runge-Kutta integral function
-*/
 inline __device__ float3 RK4(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len){
-    float B0_k1,B0_k2,B0_k3,B0_k4;
-    float3 Bk1,Bk2,Bk3,Bk4,P_end;
-
-    Bk1 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x,P0.y,P0.z);
-    B0_k1  = sqrtf(dot3(Bk1,Bk1));
-    Bk2 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk1.x/B0_k1/2.,P0.y+s_len*Bk1.y/B0_k1/2.,P0.z+s_len*Bk1.z/B0_k1/2.);
-    B0_k2  = sqrtf(dot3(Bk2,Bk2));
-    Bk3  = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk2.x/B0_k2/2.,P0.y+s_len*Bk2.y/B0_k2/2.,P0.z+s_len*Bk2.z/B0_k2/2.);
-    B0_k3  = sqrtf(dot3(Bk3,Bk3));
-    Bk4 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*Bk3.x/B0_k3,P0.y+s_len*Bk3.y/B0_k3,P0.z+s_len*Bk3.z/B0_k3);
-    B0_k4  = sqrtf(dot3(Bk4,Bk4));
-
-    P_end.x = P0.x + (1./6.)* s_len*( Bk1.x/B0_k1 + 2.0*Bk2.x/B0_k2 + 2.0*Bk3.x/B0_k3 + Bk4.x/B0_k4);
-    P_end.y = P0.y + (1./6.)* s_len*( Bk1.y/B0_k1 + 2.0*Bk2.y/B0_k2 + 2.0*Bk3.y/B0_k3 + Bk4.y/B0_k4);
-    P_end.z = P0.z + (1./6.)* s_len*( Bk1.z/B0_k1 + 2.0*Bk2.z/B0_k2 + 2.0*Bk3.z/B0_k3 + Bk4.z/B0_k4);   
+    float3 k1,k2,k3,k4,P_end;
+    k1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0,true);
+    k2 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+s_len*k1/2.,true);
+    k3 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+s_len*k2/2.,true);
+    k4 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+s_len*k3,true);
+    P_end = P0+1./6.*s_len*(k1 +2.*k2 +2.*k3 +k4);
     return P_end;
 }
 
+inline __device__ float selectFloat3xyz(float3 a, int dim){
+    float res;
+    switch(dim) {
+        case 0  : res = a.x;  break;
+        case 1  : res = a.y;  break;
+        case 2  : res = a.z;  break;}
+    return res;
+}
+inline __device__ float selectInt3xyz(int3 a, int dim){
+    int res;
+    switch(dim) {
+        case 0  : res = a.x;  break;
+        case 1  : res = a.y;  break;
+        case 2  : res = a.z;  break;}
+    return res;
+}
 
 inline __device__ float3 RK4_boundary(float *Bx,float *By,float *Bz,int3 BshapeN3, float3 P0, float s_len,int b_dim){
     float B0_k1,B0_k2,B0_k3,B0_k4;
     float3 Bk1,Bk2,Bk3,Bk4,P_end,k1,k2,k3,k4;
-    Bk1 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x,P0.y,P0.z);
-    
-    switch(b_dim) {
-        case 0  : B0_k1 = Bk1.x;  break;
-        case 1  : B0_k1 = Bk1.y;  break;
-        case 2  : B0_k1 = Bk1.z;  break;}
-    k1=divide3(Bk1,B0_k1);
-    k1.z=1.;
-    Bk2 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*k1.x/2.,P0.y+s_len*k1.y/2.,P0.z+s_len*k1.z/2.);
-    switch(b_dim) {
-        case 0  : B0_k2 = Bk2.x;  break;
-        case 1  : B0_k2 = Bk2.y;  break;
-        case 2  : B0_k2 = Bk2.z;  break;}
-    k2=divide3(Bk2,B0_k2);
-    k2.z=1.;
-    Bk3  = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*k2.x/2.,P0.y+s_len*k2.y/2.,P0.z+s_len*k2.z/2.);
-    switch(b_dim) {
-        case 0  : B0_k3 = Bk3.x;  break;
-        case 1  : B0_k3 = Bk3.y;  break;
-        case 2  : B0_k3 = Bk3.z;  break;}
-    k3=divide3(Bk3,B0_k3);
-    k3.z=1.;
-    Bk4 = Interp3dxyz(Bx,By,Bz,BshapeN3,P0.x+s_len*k3.x,P0.y+s_len*k3.y,P0.z+s_len*k3.z);
-    switch(b_dim) {
-        case 0  : B0_k4 = Bk4.x;  break;
-        case 1  : B0_k4 = Bk4.y;  break;
-        case 2  : B0_k4 = Bk4.z;  break;}    
-    k4=divide3(Bk4,B0_k4);
-    k4.z=1.;
-    P_end.x = P0.x + (1./6.)* s_len*( k1.x + 2.0*k2.x + 2.0*k3.x + k4.x);
-    P_end.y = P0.y + (1./6.)* s_len*( k1.y + 2.0*k2.y + 2.0*k3.y + k4.y);
-    P_end.z = P0.z + (1./6.)* s_len*( k1.z + 2.0*k2.z + 2.0*k3.z + k4.z);   
+    // k1
+    Bk1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0,true);
+    B0_k1 = selectFloat3xyz(Bk1,b_dim);
+    k1 = Bk1/B0_k1;
+    // k2
+    Bk2 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+s_len*k1/2.,true);
+    B0_k2 = selectFloat3xyz(Bk2,b_dim);
+    k2 = Bk2/B0_k2;
+    // k3
+    Bk3  = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+s_len*k2/2.,true);
+    B0_k3 = selectFloat3xyz(Bk3,b_dim);
+    k3 = Bk3/B0_k3;
+    // k4
+    Bk4 = Interp3dxyzn(Bx,By,Bz,BshapeN3,P0+s_len*k3,true);
+    B0_k4 = selectFloat3xyz(Bk4,b_dim);
+    k4 = Bk4/B0_k4;
+    P_end = P0 + (1./6.)* s_len*( k1 + 2.0*k2 + 2.0*k3 + k4);
     return P_end;
 }
 
-// merge in main 
 inline __device__ int checkFlag(int3 BshapeN3, float3 P_cur){
     // check current status
     int flag_res = 42; // 42 means un-categorized
     // flag=0 means inside running box
     if (P_cur.x>=0. &P_cur.y>0. &P_cur.z>=0. &  \
         P_cur.x<=BshapeN3.x-1. &P_cur.y<=BshapeN3.y-1. & P_cur.z<=BshapeN3.z-1. ){flag_res=0;} 
-    // flag=1 means outside box below (normal end of simulation)
-    if (P_cur.x>=0.           &P_cur.y>=0.           &P_cur.z<0. &  \
-       P_cur.x<BshapeN3.x-1. &P_cur.y<BshapeN3.y-1. & P_cur.z<BshapeN3.z-1. ){flag_res=1;} 
-    //printf("flag:%d\t",flag_res);
+    else{ // ouside
+        if (P_cur.x< 0.             &P_cur.y>=0.            &P_cur.z>=0. &  \
+            P_cur.x< BshapeN3.x-1.  &P_cur.y< BshapeN3.y-1. &P_cur.z< BshapeN3.z-1.   ){flag_res=1;} // x min 
+        if (P_cur.x>=0.             &P_cur.y>=0.            &P_cur.z>=0. &  \
+            P_cur.x>=BshapeN3.x-1.  &P_cur.y< BshapeN3.y-1. &P_cur.z< BshapeN3.z-1.   ){flag_res=2;} // x max
+        if (P_cur.x>=0.             &P_cur.y< 0.            &P_cur.z>=0. &  \
+            P_cur.x< BshapeN3.x-1.  &P_cur.y< BshapeN3.y-1. &P_cur.z< BshapeN3.z-1.   ){flag_res=3;} // y min
+        if (P_cur.x>=0.             &P_cur.y>=0.            &P_cur.z>=0. &  \
+            P_cur.x< BshapeN3.x-1.  &P_cur.y>=BshapeN3.y-1. &P_cur.z< BshapeN3.z-1.   ){flag_res=4;} // y max 
+        if (P_cur.x>=0.             &P_cur.y>=0.            &P_cur.z< 0. &  \
+            P_cur.x< BshapeN3.x-1.  &P_cur.y< BshapeN3.y-1. &P_cur.z< BshapeN3.z-1.   ){flag_res=5;} // z min
+        if (P_cur.x>=0.             &P_cur.y>=0.            &P_cur.z>=0. &  \
+            P_cur.x< BshapeN3.x-1.  &P_cur.y< BshapeN3.y-1. &P_cur.z>=BshapeN3.z-1.   ){flag_res=6;} // z max
+    }
+    // dim = int((flag-1)/2)
     return flag_res;
 }
 
 __device__ void TraceBline(float *Bx,float *By,float *Bz,int3 BshapeN3,\
-    float *P_0, float *P_out, float s_len, int *flag, unsigned long long *step_len_this){
-        
+    float *curB_x, float *curB_y,  float *curB_z,double *twist_this,bool *curB_flag,\
+    float *P_0, float *P_out, float *ncross_dir, float s_len, int *flag, double *len_this,\
+    float direction){
         unsigned long step_count = 0;
-        unsigned long step_lim = (MAX_STEP_RATIO*2*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
-        float ratio_z;
+        //unsigned long step_lim = (MAX_STEP_RATIO*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
+        double len_lim = (MAX_STEP_RATIO*1.0*(BshapeN3.x+BshapeN3.y+BshapeN3.z));
+        float p_mid, p1,p2; // for linear interpolation
         int flag_this;
-        float Bz_tmp, direction;
-        float3 PP1,PP2;
-        float3 B_P1,B_P2;
-
+        int dim_out;
+        float3 PP1,PP2,B_P1,B_P2,B_Pstart, ncross_dir3,cur_P1;
+        float3 P_tmp;
+        double len_record=0;
+        double twist=0;
         flag_this = 0;  // start from flag=0
         PP1=make_float3(P_0[0],P_0[1],P_0[2]);
-        Bz_tmp  = Interp3d(Bz,BshapeN3,PP1.x,PP1.y,PP1.z);
+        ncross_dir3=make_float3(ncross_dir[0],ncross_dir[1],ncross_dir[2]);
+        B_Pstart = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true);
         
-        if (Bz_tmp>0) {direction=1.0;}
-        else{direction=-1.0;}
-        //printf("Direction:%f\n",direction);
 
-        while ( (flag_this==0) & (step_count<step_lim)){
+        while ( (flag_this==0) & (len_record<len_lim) & (step_count<MAX_NUM_STEP)){
             // trace Bline step by step
-            PP2 = RK4(Bx,By,Bz,BshapeN3,PP1, s_len*direction);
-            //stepForward(Bx,By,Bz,BshapeN3,P1, P2, s_len*direction);
-            //printf("Cur[%d] : %f  :%f  :%f\n",step_count,P2[0],P2[1],P2[2]);
+            P_tmp = RK4(Bx,By,Bz,BshapeN3,PP1, s_len*direction);
+            PP2 = make_float3(P_tmp.x,P_tmp.y,P_tmp.z);
+            len_record = len_record+lenVec3(PP1-PP2);
+            if (curB_flag[0]){
+                cur_P1 = Interp3dxyzn(curB_x,curB_y,curB_z,BshapeN3,PP1,false);
+                B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,false);
+                twist = twist+dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI*lenVec3(PP1-PP2);
+            }
+
             flag_this = checkFlag(BshapeN3,PP2);  // check status
-            if (flag_this>0){
-                if (flag_this==1){
+            if (flag_this>0){ // out of box
+                len_record = len_record-lenVec3(PP1-PP2); // reverse step len
+                if (curB_flag[0]){// reverse twist
+                    twist = twist-dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI*lenVec3(PP1-PP2);
+                }
+                if (flag_this<=6){ // step out from surface
                     // linear estimation
-                    B_P1 = Interp3dxyz(Bx,By,Bz,BshapeN3,PP1.x,PP1.y,PP1.z);
-                    B_P2 = Interp3dxyz(Bx,By,Bz,BshapeN3,PP2.x,PP2.y,PP2.z);
-                    if (1| fabsf(B_P1.z)*20.< sqrtf(dot3(B_P1,B_P1)) | fabsf(B_P2.z)*20.< sqrtf(dot3(B_P2,B_P2)) ){
-                            P_out[0] = (PP1.x* (-PP2.z) + PP2.x* (PP1.z))/(PP1.z-PP2.z);
-                            P_out[1] = (PP1.y* (-PP2.z) + PP2.y* (PP1.z))/(PP1.z-PP2.z);
-                            P_out[2] = (PP1.z* (-PP2.z) + PP2.z* (PP1.z))/(PP1.z-PP2.z);
-                            flag_this=43;
+                    dim_out = int((flag_this-1)/2);
+                    p1 = selectFloat3xyz(PP1,dim_out);
+                    p2 = selectFloat3xyz(PP2,dim_out);
+
+                    if (fabsf(p1-p2)>1e-3){
+                        if (flag_this%2==1){p_mid=0;} // step out from min surface
+                        else{p_mid=float(selectInt3xyz(BshapeN3,dim_out));} // step out from max surface
+                        B_P1 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP1,true);
+                        B_P2 = Interp3dxyzn(Bx,By,Bz,BshapeN3,PP2,true);
+                        if (fabsf(selectFloat3xyz(B_P1,dim_out))<0.2 | fabsf(selectFloat3xyz(B_P2,dim_out))<0.2){
+                                P_out[0] = (PP1.x* (p2-p_mid) + PP2.x* (p_mid-p1))/(p2-p1);
+                                P_out[1] = (PP1.y* (p2-p_mid) + PP2.y* (p_mid-p1))/(p2-p1);
+                                P_out[2] = (PP1.z* (p2-p_mid) + PP2.z* (p_mid-p1))/(p2-p1); }
+                        else{// rk4 to the surface
+                            PP2 = RK4_boundary(Bx,By,Bz,BshapeN3,PP1,(p_mid-p1),dim_out);
+                            P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
+                        }
+                        len_record = len_record+fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));    
                     }
                     else{
-                        // rk4 to the surface
-                        PP2 = RK4_boundary(Bx,By,Bz,BshapeN3,PP1,-PP1.z,2);
-                        P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
+                        P_out[0] = PP1.x;  P_out[1] = PP1.y;  P_out[2] = PP1.z;
                     }
+
+                    if (curB_flag[0]){
+                        twist = twist+dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI \
+                        *fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));
+                    }    
                 }
                 else{ // ignore
                     P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
                 }
             }
             PP1=PP2;
-            step_count = step_count+1;        
-            //printf("[%d][%f]:%f  :%f  :%f\n",step_count,direction,P1[0],P1[1],P1[2]);
+            step_count=step_count+1;
         }
-        //printf("[%d][%f]:%f  :%f  :%f\n",step_count,direction,P1[0],P1[1],P1[2]);
-        step_len_this[0] = step_count;
+        //printf("[%d][%f]:%f  :%f  :%f\n",step_count,P1[0],P1[1],P1[2]);
+        len_this[0] = len_record;
+        twist_this[0] = twist;
         flag[0] = flag_this;
     }
 
 
-__global__ void test_Interp3d(float *Arr,int *AShapeN, float *inPoint,float *res){
-    int3 AShapeN3 = make_int3(AShapeN[0],AShapeN[1],AShapeN[2]);
-    res[0] = Interp3d(Arr,AShapeN3,inPoint[0],inPoint[1],inPoint[2]);
-}
 
 
-__global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
-    float *inp_x,float *inp_y, float *inp_z,\
-    float *out_x,float *out_y, float *out_z, float *s_len,\
-    float *B_inp_x,float *B_inp_y, float *B_inp_z,\
-    float *B_out_x,float *B_out_y, float *B_out_z,\
-    int *flag_out,unsigned long long *N,unsigned long long *stepLineLen){
-        
-        unsigned long long x = blockIdx.x * blockDim.x + threadIdx.x;
-        unsigned long long y = blockIdx.y * blockDim.y + threadIdx.y; 
-        unsigned long long idx_cur,dim_all,works_per_thread,Bline_ID,line_idx;
-        int3 BshapeN3 = make_int3(BshapeN[0],BshapeN[1],BshapeN[2]);
-
-        dim_all = (gridDim.x*blockDim.x*gridDim.y*blockDim.y); //8192
-        idx_cur = (gridDim.x*blockDim.x) * y + x;                     
-        works_per_thread = N[0]/dim_all+1;
-        //printf("  %llu ",works_per_thread);
-        
-        float *P_0 = new float[3];
-        float *P_out = new float[3];
-        int *flag_cur = new int[1];
-        unsigned long long *step_len_this = new unsigned long long[1];
-
-        for (line_idx=0; line_idx<works_per_thread; line_idx++){
-            //Bline_ID = works_per_thread*idx_cur+line_idx;
-            Bline_ID = idx_cur+line_idx*dim_all;
-            if (Bline_ID<N[0]){
-                //printf("  %llu ",Bline_ID);
-                // main procedure of B-line tracking 
-                P_0[0] = inp_x[Bline_ID];
-                P_0[1] = inp_y[Bline_ID];
-                P_0[2] = inp_z[Bline_ID]; 
-                // record input B
-                B_inp_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_0[0],P_0[1],P_0[2]);
-                B_inp_y[Bline_ID] = Interp3d(By,BshapeN3,P_0[0],P_0[1],P_0[2]);
-                B_inp_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_0[0],P_0[1],P_0[2]);
-                TraceBline(Bx,By,Bz,BshapeN3,P_0, P_out, s_len[0], flag_cur,step_len_this);
-                out_x[Bline_ID] = P_out[0];
-                out_y[Bline_ID] = P_out[1];
-                out_z[Bline_ID] = P_out[2];
-                flag_out[Bline_ID] = flag_cur[0];
-                stepLineLen[Bline_ID] = step_len_this[0];
-                //printf("[%d], %f, %f, %f\n", flag_out[idx_cur] ,out_x[idx_cur],out_y[idx_cur],out_z[idx_cur] );
-                // record output B
-                B_out_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
-                B_out_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
-                B_out_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
-                
+    __global__ void TraceAllBline(float *Bx,float *By,float *Bz,int *BshapeN,\
+        float *curB_x, float *curB_y,  float *curB_z,double *twist,bool *curB_flag,\
+        float *inp_x,float *inp_y, float *inp_z, float *inp_cross_dir,\
+        float *start_x,float *start_y, float *start_z, int *flag_start,\
+        float *end_x,  float *end_y,   float *end_z,   int *flag_end,\
+        float *B_this_x,float *B_this_y, float *B_this_z, int *B_flag,\
+        float *B_start_x,float *B_start_y, float *B_start_z,\
+        float *B_end_x,float *B_end_y, float *B_end_z,\
+        float *s_len,unsigned long long *N,double *LineLen){
+            
+            unsigned long long x = blockIdx.x * blockDim.x + threadIdx.x;
+            unsigned long long y = blockIdx.y * blockDim.y + threadIdx.y; 
+            unsigned long long idx_cur,dim_all,works_per_thread,Bline_ID,line_idx;
+            int3 BshapeN3 = make_int3(BshapeN[0],BshapeN[1],BshapeN[2]);
+    
+            dim_all = (gridDim.x*blockDim.x*gridDim.y*blockDim.y); // upper lim 8192 
+            idx_cur = (gridDim.x*blockDim.x) * y + x;                     
+            works_per_thread = N[0]/dim_all+1;
+            
+            double *twist_this = new double[1];
+            float *P_0 = new float[3];
+            float *P_out = new float[3];
+            int *flag_cur = new int[1];
+            double *len_this = new double[1];
+    
+            for (line_idx=0; line_idx<works_per_thread; line_idx++){
+                //Bline_ID = works_per_thread*idx_cur+line_idx;
+                Bline_ID = idx_cur+line_idx*dim_all;
+                if (Bline_ID<N[0]){
+                    //printf("  %llu ",Bline_ID);
+                    // forward
+                    P_0[0] = inp_x[Bline_ID];
+                    P_0[1] = inp_y[Bline_ID];
+                    P_0[2] = inp_z[Bline_ID]; 
+                    twist_this[0]=0;
+                    TraceBline(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+                        P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,1.0); // forward and backward
+                    B_end_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                    B_end_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                    B_end_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                    end_x[Bline_ID] = P_out[0];
+                    end_y[Bline_ID] = P_out[1];
+                    end_z[Bline_ID] = P_out[2];
+                    flag_end[Bline_ID] = flag_cur[0];
+                    LineLen[Bline_ID] = len_this[0];
+                    if (curB_flag[0]){twist[Bline_ID]=twist_this[0];}
+                    //backward
+                    P_0[0] = inp_x[Bline_ID];
+                    P_0[1] = inp_y[Bline_ID];
+                    P_0[2] = inp_z[Bline_ID]; 
+                    twist_this[0]=0;
+                    TraceBline(Bx,By,Bz,BshapeN3,curB_x,curB_y,curB_z,twist_this,curB_flag,\
+                        P_0, P_out,inp_cross_dir, s_len[0], flag_cur,len_this,-1.0); // forward and backward
+                    B_start_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                    B_start_y[Bline_ID] = Interp3d(By,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                    B_start_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_out[0],P_out[1],P_out[2]);
+                    start_x[Bline_ID] = P_out[0];
+                    start_y[Bline_ID] = P_out[1];
+                    start_z[Bline_ID] = P_out[2];
+                    flag_start[Bline_ID] = flag_cur[0];
+                    LineLen[Bline_ID] = LineLen[Bline_ID] + len_this[0];
+                    if (curB_flag[0]){twist[Bline_ID]=twist[Bline_ID]+twist_this[0];}
+                    //printf("[%d], %f, %f, %f\n", flag_out[idx_cur] ,out_x[idx_cur],out_y[idx_cur],out_z[idx_cur] );
+                    
+                    // record B in plane
+                    B_this_x[Bline_ID] = Interp3d(Bx,BshapeN3,P_0[0],P_0[1],P_0[2]);
+                    B_this_y[Bline_ID] = Interp3d(By,BshapeN3,P_0[0],P_0[1],P_0[2]);
+                    B_this_z[Bline_ID] = Interp3d(Bz,BshapeN3,P_0[0],P_0[1],P_0[2]);
+    
+                    if (fabsf(B_this_x[Bline_ID]*inp_cross_dir[0]+B_this_y[Bline_ID]*inp_cross_dir[1]+B_this_z[Bline_ID]*inp_cross_dir[2])*100.\
+                      <lenVec3xyz(B_this_x[Bline_ID],B_this_y[Bline_ID],B_this_z[Bline_ID])){
+                        B_flag[Bline_ID] = 1;}
+                    else{B_flag[Bline_ID] = 0;}
+                    //printf("flag***:  %d  %d\n",flag_cur[0],flag_start[Bline_ID]);
+                }
             }
-        }
-        
-        delete[] P_0;
-        delete[] P_out;
-        delete[] flag_cur;
-}
-
-__global__ void TestMem(int *flag_out){
-
-}
-}
+            delete[] twist_this;
+            delete[] P_0;
+            delete[] P_out;
+            delete[] flag_cur;
+            delete[] len_this;
+    }
+    }

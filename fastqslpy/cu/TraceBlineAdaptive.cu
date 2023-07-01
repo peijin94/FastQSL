@@ -8,8 +8,9 @@
 #include <stdio.h>
 #include "helper_math.h"  /// Math API
 #define M_PI 3.14159265   ///< Mathematical constant PI.
-#define MAX_STEP_RATIO 2  ///< Maximum step length compared to box size.
+#define MAX_STEP_RATIO 3  ///< Maximum step length compared to box size.
 #define TOL 1e-3 // toleranced error for each step [0.001~0.00001]
+#define MAX_NUM_STEP 500000 ///< Maximum number of steps.
 
 extern "C"{
 #include "TraceBlineAdaptive.cuh"
@@ -357,7 +358,7 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
             
         tol_this=tol_this*tol_coef;
         
-        while ( (flag_this==0) & (len_record<len_lim)){
+        while ( (flag_this==0) & (len_record<len_lim) & (step_count<MAX_NUM_STEP)){
             // trace Bline step by step
             P_tmp = RKF45(Bx,By,Bz,BshapeN3,PP1, s_len*direction);
             PP2 = make_float3(P_tmp.x,P_tmp.y,P_tmp.z);
