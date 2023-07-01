@@ -5,9 +5,12 @@
 */
 #include <math.h>
 #include <stdio.h>
+#include "helper_math.h"  /// Math API
 //#include "TraceBline.cuh"
 #define M_PI 3.14159265   ///< Mathematical constant PI.
 #define MAX_STEP_RATIO 4  ///< Maximum step length compared to box size.
+#define MAX_NUM_STEP 500000 ///< Maximum number of steps.
+
 extern "C"{
 inline __device__ float lenVec3xyz(float xx,float yy,float zz){
     return sqrtf(xx*xx + yy*yy + zz*zz);}
@@ -209,10 +212,12 @@ __global__ void test_Interp3dxyz(float *Arr_x,float *Arr_y,float *Arr_z,int *ASh
 __device__ void stepForward(float *Bx,float *By,float *Bz,int3 BshapeN3,\
     float *P_start, float *P_end,float s_len){
     float Bx_cur,By_cur,Bz_cur,B0;
+    float3 Btmp;
     Bx_cur  = Interp3d(Bx,BshapeN3,P_start[0],P_start[1],P_start[2]);
     By_cur  = Interp3d(By,BshapeN3,P_start[0],P_start[1],P_start[2]);
     Bz_cur  = Interp3d(Bz,BshapeN3,P_start[0],P_start[1],P_start[2]);
-    B0 = lenVec3(Bx_cur,By_cur,Bz_cur);
+    Btmp = make_float3(Bx_cur,By_cur,Bz_cur);
+    B0 = lenVec3(Btmp);
     P_end[0] = P_start[0] + s_len*Bx_cur/B0;
     P_end[1] = P_start[1] + s_len*By_cur/B0;
     P_end[2] = P_start[2] + s_len*Bz_cur/B0;
