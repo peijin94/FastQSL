@@ -8,8 +8,8 @@
 #include "helper_math.h"  /// Math API
 //#include "TraceBline.cuh"
 #define M_PI 3.14159265   ///< Mathematical constant PI.
-#define MAX_STEP_RATIO 4  ///< Maximum step length compared to box size.
-#define MAX_NUM_STEP 500000 ///< Maximum number of steps.
+#define MAX_STEP_RATIO 2  ///< Maximum step length compared to box size.
+#define MAX_NUM_STEP 100000 ///< Maximum number of steps.
 
 extern "C"{
 inline __device__ float lenVec3xyz(float xx,float yy,float zz){
