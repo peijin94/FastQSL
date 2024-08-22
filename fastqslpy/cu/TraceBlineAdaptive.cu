@@ -407,10 +407,10 @@ __device__ void TraceBlineAdap(float *Bx,float *By,float *Bz,int3 BshapeN3,\
                         P_out[0] = PP1.x;  P_out[1] = PP1.y;  P_out[2] = PP1.z;
                     }
 
-                    if (curB_flag[0]){
-                        twist = twist+dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI \
-                        *fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));
-                    }    
+                    //if (curB_flag[0]){
+                    //    twist = twist+dot3(cur_P1,B_P1)/dot3(B_P1,B_P1)/4.0/M_PI \
+                    //    *fabsf(p_mid-p1)/(1e-4+fabsf(selectFloat3xyz(B_P1,dim_out)));
+                    //}    
                 }
                 else{ // ignore
                     P_out[0] = PP2.x;  P_out[1] = PP2.y;  P_out[2] = PP2.z;
